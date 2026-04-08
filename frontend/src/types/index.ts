@@ -25,7 +25,11 @@ export interface UserInfo {
   avatar: string | null
   email?: string | null
   phone?: string | null
+  gender?: number
+  dept_id?: number | null
+  post_id?: number | null
   status?: number
+  create_time?: string | null
 }
 
 /** 登录响应 */

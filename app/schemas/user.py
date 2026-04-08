@@ -28,6 +28,7 @@ class UserUpdate(BaseModel):
     gender: Optional[int] = None
     dept_id: Optional[int] = None
     post_id: Optional[int] = None
+    user_type: Optional[int] = None
     status: Optional[int] = None
     role_ids: Optional[list[int]] = None
 

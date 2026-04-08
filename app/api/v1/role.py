@@ -5,10 +5,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.deps import get_current_user
 from app.db.session import get_db
 from app.models.role import SysRole, SysRoleMenu
+from app.models.user import SysUser
 from app.schemas.common import success
 from app.schemas.role import RoleCreate, RoleOut, RoleUpdate
 
 router = APIRouter()
+
+
+def _check_tenant(current_user: SysUser, target_tenant_id: str) -> None:
+    if current_user.user_type != 0 and target_tenant_id != current_user.tenant_id:
+        raise HTTPException(status_code=403, detail="无权访问其他租户的数据")
 
 
 @router.get("/list")
@@ -19,11 +25,14 @@ async def list_roles(
     role_name: str | None = None,
     status: int | None = None,
     db: AsyncSession = Depends(get_db),
-    _=Depends(get_current_user),
+    current_user: SysUser = Depends(get_current_user),
 ):
     q = select(SysRole).where(SysRole.deleted == 0)
-    if tenant_id:
-        q = q.where(SysRole.tenant_id == tenant_id)
+    if current_user.user_type == 0:
+        if tenant_id:
+            q = q.where(SysRole.tenant_id == tenant_id)
+    else:
+        q = q.where(SysRole.tenant_id == current_user.tenant_id)
     if role_name:
         q = q.where(SysRole.role_name.like(f"%{role_name}%"))
     if status is not None:
@@ -35,10 +44,11 @@ async def list_roles(
 
 
 @router.get("/get/{id}")
-async def get_role(id: int, db: AsyncSession = Depends(get_db), _=Depends(get_current_user)):
+async def get_role(id: int, db: AsyncSession = Depends(get_db), current_user: SysUser = Depends(get_current_user)):
     role = (await db.execute(select(SysRole).where(SysRole.id == id, SysRole.deleted == 0))).scalar_one_or_none()
     if not role:
         raise HTTPException(status_code=404, detail="角色不存在")
+    _check_tenant(current_user, role.tenant_id)
     menu_ids = (await db.execute(select(SysRoleMenu.menu_id).where(SysRoleMenu.role_id == id))).scalars().all()
     data = RoleOut.model_validate(role).model_dump()
     data["menu_ids"] = list(menu_ids)
@@ -46,7 +56,8 @@ async def get_role(id: int, db: AsyncSession = Depends(get_db), _=Depends(get_cu
 
 
 @router.post("/create")
-async def create_role(data: RoleCreate, db: AsyncSession = Depends(get_db), _=Depends(get_current_user)):
+async def create_role(data: RoleCreate, db: AsyncSession = Depends(get_db), current_user: SysUser = Depends(get_current_user)):
+    _check_tenant(current_user, data.tenant_id)
     menu_ids = data.menu_ids
     role = SysRole(**data.model_dump(exclude={"menu_ids"}))
     db.add(role)
@@ -59,10 +70,11 @@ async def create_role(data: RoleCreate, db: AsyncSession = Depends(get_db), _=De
 
 
 @router.put("/update/{id}")
-async def update_role(id: int, data: RoleUpdate, db: AsyncSession = Depends(get_db), _=Depends(get_current_user)):
+async def update_role(id: int, data: RoleUpdate, db: AsyncSession = Depends(get_db), current_user: SysUser = Depends(get_current_user)):
     role = (await db.execute(select(SysRole).where(SysRole.id == id, SysRole.deleted == 0))).scalar_one_or_none()
     if not role:
         raise HTTPException(status_code=404, detail="角色不存在")
+    _check_tenant(current_user, role.tenant_id)
     menu_ids = data.menu_ids
     for k, v in data.model_dump(exclude_none=True, exclude={"menu_ids"}).items():
         setattr(role, k, v)
@@ -76,10 +88,11 @@ async def update_role(id: int, data: RoleUpdate, db: AsyncSession = Depends(get_
 
 
 @router.delete("/delete/{id}")
-async def delete_role(id: int, db: AsyncSession = Depends(get_db), _=Depends(get_current_user)):
+async def delete_role(id: int, db: AsyncSession = Depends(get_db), current_user: SysUser = Depends(get_current_user)):
     role = (await db.execute(select(SysRole).where(SysRole.id == id, SysRole.deleted == 0))).scalar_one_or_none()
     if not role:
         raise HTTPException(status_code=404, detail="角色不存在")
+    _check_tenant(current_user, role.tenant_id)
     role.deleted = 1
     await db.commit()
     return success(msg="删除成功")

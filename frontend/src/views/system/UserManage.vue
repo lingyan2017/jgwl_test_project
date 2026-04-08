@@ -25,11 +25,15 @@
       </template>
       <el-table :data="tableData" border stripe v-loading="loading">
         <el-table-column prop="id"        label="ID"    width="70" />
-        <el-table-column prop="username"  label="用户名" width="130" />
-        <el-table-column prop="real_name" label="姓名"  width="100" />
-        <el-table-column prop="tenant_id" label="租户"  width="120" />
-        <el-table-column prop="email"     label="邮箱" />
-        <el-table-column prop="phone"     label="手机"  width="130" />
+        <el-table-column prop="username"  label="用户名" width="120" />
+        <el-table-column prop="real_name" label="姓名"  width="90" />
+        <el-table-column prop="tenant_id" label="租户"  width="110" />
+        <el-table-column prop="dept_id"   label="部门"  width="110">
+          <template #default="{ row }">{{ row.dept_id ? (deptMap[row.dept_id] ?? row.dept_id) : '-' }}</template>
+        </el-table-column>
+        <el-table-column prop="post_id"   label="岗位"  width="110">
+          <template #default="{ row }">{{ row.post_id ? (postMap[row.post_id] ?? row.post_id) : '-' }}</template>
+        </el-table-column>
         <el-table-column prop="user_type" label="类型"  width="110">
           <template #default="{ row }">
             <el-tag :type="row.user_type===0?'danger':row.user_type===1?'warning':'info'">
@@ -52,8 +56,10 @@
       <el-pagination v-model:current-page="query.page" v-model:page-size="query.page_size" :total="total" :page-sizes="[10,20,50]" layout="total,sizes,prev,pager,next" style="margin-top:16px;justify-content:flex-end" @change="loadData" />
     </el-card>
 
-    <el-dialog v-model="dialogVisible" :title="editRow?'编辑用户':'新增用户'" width="560px">
+    <el-dialog v-model="dialogVisible" :title="editRow?'编辑用户':'新增用户'" width="580px">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
+
+        <!-- 租户ID：新增时下拉，编辑时禁用展示 -->
         <el-form-item label="租户ID" prop="tenant_id">
           <template v-if="!editRow">
             <el-select
@@ -75,11 +81,34 @@
           </template>
           <el-input v-else :model-value="form.tenant_id" disabled />
         </el-form-item>
+
         <el-form-item label="用户名"   prop="username"><el-input v-model="form.username" :disabled="!!editRow" /></el-form-item>
         <el-form-item label="密码"     prop="password" v-if="!editRow"><el-input v-model="form.password" type="password" show-password /></el-form-item>
         <el-form-item label="姓名"><el-input v-model="form.real_name" /></el-form-item>
         <el-form-item label="邮箱"><el-input v-model="form.email" /></el-form-item>
         <el-form-item label="手机"><el-input v-model="form.phone" /></el-form-item>
+
+        <!-- 部门 -->
+        <el-form-item label="部门">
+          <el-select v-model="form.dept_id" clearable placeholder="请选择部门" style="width:100%" :disabled="!form.tenant_id">
+            <el-option v-for="opt in deptOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+          </el-select>
+        </el-form-item>
+
+        <!-- 岗位 -->
+        <el-form-item label="岗位">
+          <el-select v-model="form.post_id" clearable placeholder="请选择岗位" style="width:100%" :disabled="!form.tenant_id">
+            <el-option v-for="opt in postOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+          </el-select>
+        </el-form-item>
+
+        <!-- 角色 -->
+        <el-form-item label="角色">
+          <el-select v-model="form.role_ids" multiple clearable placeholder="请选择角色" style="width:100%" :disabled="!form.tenant_id">
+            <el-option v-for="opt in roleOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+          </el-select>
+        </el-form-item>
+
         <el-form-item label="用户类型">
           <el-select v-model="form.user_type" style="width:100%">
             <el-option label="超级管理员" :value="0" /><el-option label="租户管理员" :value="1" /><el-option label="普通用户" :value="2" />
@@ -98,36 +127,62 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, watch, onMounted } from 'vue'
 import { Search, Refresh, Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { getUserList, createUser, updateUser, deleteUser } from '@/api/user'
+import { getUserList, createUser, updateUser, deleteUser, getUserRoles } from '@/api/user'
 import { getTenantList } from '@/api/tenant'
+import { getDeptList } from '@/api/dept'
+import { getPostList } from '@/api/post'
+import { getRoleList } from '@/api/role'
 import { useAuthStore } from '@/stores/auth'
 import type { UserInfo } from '@/types'
 
 const authStore = useAuthStore()
 
-const loading = ref<boolean>(false); const submitting = ref<boolean>(false)
-const tableData = ref<UserInfo[]>([]); const total = ref<number>(0)
-const dialogVisible = ref<boolean>(false); const editRow = ref<UserInfo | null>(null); const formRef = ref<FormInstance>()
+const loading = ref<boolean>(false)
+const submitting = ref<boolean>(false)
+const tableData = ref<UserInfo[]>([])
+const total = ref<number>(0)
+const dialogVisible = ref<boolean>(false)
+const editRow = ref<UserInfo | null>(null)
+const formRef = ref<FormInstance>()
 
+// 表格展示用：部门/岗位 id->name 映射
+const deptMap = ref<Record<number, string>>({})
+const postMap = ref<Record<number, string>>({})
+
+// 租户ID下拉
 interface TenantIdOption { value: string; label: string; tenantName: string }
 const tenantIdOptions = ref<TenantIdOption[]>([])
 const tenantIdLoading = ref<boolean>(false)
 
-interface UserQuery { page: number; page_size: number; username: string; tenant_id: string; status: number | null }
-interface UserForm { tenant_id: string; username: string; password: string; real_name: string; email: string; phone: string; user_type: number; status: number }
+// 对话框内的关联数据选项
+interface SelectOption { value: number; label: string }
+const deptOptions = ref<SelectOption[]>([])
+const postOptions = ref<SelectOption[]>([])
+const roleOptions = ref<SelectOption[]>([])
 
-const query = reactive<UserQuery>({ page:1, page_size:10, username:'', tenant_id:'', status:null })
-const form = reactive<UserForm>({ tenant_id:'', username:'', password:'', real_name:'', email:'', phone:'', user_type:2, status:1 })
-const rules: FormRules<UserForm> = {
-  tenant_id: [{ required:true, message:'请选择租户ID', trigger:'change' }],
-  username:  [{ required:true, message:'请输入用户名', trigger:'blur' }],
-  password:  [{ required:true, message:'请输入密码',   trigger:'blur' }],
+interface UserQuery { page: number; page_size: number; username: string; tenant_id: string; status: number | null }
+interface UserForm {
+  tenant_id: string; username: string; password: string; real_name: string
+  email: string; phone: string; user_type: number
+  dept_id: number | null; post_id: number | null; role_ids: number[]; status: number
 }
 
+const query = reactive<UserQuery>({ page: 1, page_size: 10, username: '', tenant_id: '', status: null })
+const form = reactive<UserForm>({
+  tenant_id: '', username: '', password: '', real_name: '', email: '', phone: '',
+  user_type: 2, dept_id: null, post_id: null, role_ids: [], status: 1,
+})
+const rules: FormRules<UserForm> = {
+  tenant_id: [{ required: true, message: '请选择租户ID', trigger: 'change' }],
+  username:  [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+  password:  [{ required: true, message: '请输入密码',   trigger: 'blur' }],
+}
+
+/** 加载租户下拉选项（新增时使用） */
 async function loadTenantIdOptions(): Promise<void> {
   tenantIdLoading.value = true
   try {
@@ -141,6 +196,28 @@ async function loadTenantIdOptions(): Promise<void> {
   }
 }
 
+/** 加载指定租户下的部门/岗位/角色选项（对话框内联动） */
+async function loadAssociatedOptions(tenantId: string): Promise<void> {
+  const [deptRes, postRes, roleRes] = await Promise.all([
+    getDeptList({ page: 1, page_size: 500, tenant_id: tenantId, status: 1 }),
+    getPostList({ page: 1, page_size: 500, tenant_id: tenantId, status: 1 }),
+    getRoleList({ page: 1, page_size: 500, tenant_id: tenantId, status: 1 }),
+  ])
+  deptOptions.value = deptRes.data.items.map(d => ({ value: d.id, label: d.dept_name }))
+  postOptions.value = postRes.data.items.map(p => ({ value: p.id, label: p.post_name }))
+  roleOptions.value = roleRes.data.items.map(r => ({ value: r.id, label: r.role_name }))
+}
+
+/** 新增时，选择租户后自动刷新部门/岗位/角色 */
+watch(() => form.tenant_id, async (newTid) => {
+  if (!editRow.value && newTid) {
+    form.dept_id = null
+    form.post_id = null
+    form.role_ids = []
+    await loadAssociatedOptions(newTid)
+  }
+})
+
 async function loadData(): Promise<void> {
   loading.value = true
   try {
@@ -149,37 +226,93 @@ async function loadData(): Promise<void> {
     if (!params.tenant_id) delete params.tenant_id
     if (params.status === null) delete params.status
     const res = await getUserList(params)
-    tableData.value = res.data.items; total.value = res.data.total
+    tableData.value = res.data.items
+    total.value = res.data.total
   } finally { loading.value = false }
 }
 
-function resetQuery(): void { Object.assign(query,{page:1,page_size:10,username:'',tenant_id:'',status:null}); loadData() }
+function resetQuery(): void {
+  Object.assign(query, { page: 1, page_size: 10, username: '', tenant_id: '', status: null })
+  loadData()
+}
 
 async function openDialog(row: UserInfo | null = null): Promise<void> {
   editRow.value = row
+  deptOptions.value = []
+  postOptions.value = []
+  roleOptions.value = []
+
   if (row) {
-    Object.assign(form, { tenant_id:row.tenant_id, username:row.username, password:'', real_name:row.real_name??'', email:row.email??'', phone:row.phone??'', user_type:row.user_type, status:row.status })
+    // 编辑：加载该用户所在租户的关联数据 + 当前角色
+    const [roleRes] = await Promise.all([
+      getUserRoles(row.id),
+      loadAssociatedOptions(row.tenant_id),
+    ])
+    Object.assign(form, {
+      tenant_id: row.tenant_id,
+      username:  row.username,
+      password:  '',
+      real_name: row.real_name ?? '',
+      email:     row.email ?? '',
+      phone:     row.phone ?? '',
+      user_type: row.user_type,
+      dept_id:   row.dept_id ?? null,
+      post_id:   row.post_id ?? null,
+      role_ids:  roleRes.data as number[],
+      status:    row.status ?? 1,
+    })
   } else {
-    Object.assign(form, { tenant_id:'', username:'', password:'', real_name:'', email:'', phone:'', user_type:2, status:1 })
+    // 新增：清空并加载租户选项（选择租户后再加载部门/岗位/角色）
+    Object.assign(form, {
+      tenant_id: '', username: '', password: '', real_name: '', email: '', phone: '',
+      user_type: 2, dept_id: null, post_id: null, role_ids: [], status: 1,
+    })
     await loadTenantIdOptions()
   }
-  dialogVisible.value = true; formRef.value?.clearValidate()
+
+  dialogVisible.value = true
+  formRef.value?.clearValidate()
 }
 
-async function handleSubmit() {
+async function handleSubmit(): Promise<void> {
   await formRef.value?.validate()
   submitting.value = true
   try {
-    if (editRow.value) await updateUser(editRow.value.id, { real_name:form.real_name, email:form.email, phone:form.phone, user_type:form.user_type, status:form.status })
-    else await createUser({ ...form })
-    ElMessage.success(editRow.value?'更新成功':'创建成功'); dialogVisible.value=false; loadData()
-  } finally { submitting.value=false }
+    if (editRow.value) {
+      await updateUser(editRow.value.id, {
+        real_name: form.real_name,
+        email:     form.email,
+        phone:     form.phone,
+        user_type: form.user_type,
+        dept_id:   form.dept_id,
+        post_id:   form.post_id,
+        role_ids:  form.role_ids,
+        status:    form.status,
+      })
+    } else {
+      await createUser({ ...form })
+    }
+    ElMessage.success(editRow.value ? '更新成功' : '创建成功')
+    dialogVisible.value = false
+    loadData()
+  } finally { submitting.value = false }
 }
 
 async function handleDelete(id: number): Promise<void> {
-  await ElMessageBox.confirm('确认删除该用户？','警告',{type:'warning'})
-  await deleteUser(id); ElMessage.success('删除成功'); loadData()
+  await ElMessageBox.confirm('确认删除该用户？', '警告', { type: 'warning' })
+  await deleteUser(id)
+  ElMessage.success('删除成功')
+  loadData()
 }
 
-onMounted(loadData)
+onMounted(async () => {
+  // 预加载部门/岗位映射，用于表格展示名称
+  const [deptRes, postRes] = await Promise.all([
+    getDeptList({ page: 1, page_size: 1000 }),
+    getPostList({ page: 1, page_size: 1000 }),
+  ])
+  deptRes.data.items.forEach(d => { deptMap.value[d.id] = d.dept_name })
+  postRes.data.items.forEach(p => { postMap.value[p.id] = p.post_name })
+  loadData()
+})
 </script>

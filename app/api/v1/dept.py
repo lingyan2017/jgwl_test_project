@@ -1,14 +1,20 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user
 from app.db.session import get_db
 from app.models.dept import SysDept
+from app.models.user import SysUser
 from app.schemas.common import success
 from app.schemas.dept import DeptCreate, DeptOut, DeptUpdate
 
 router = APIRouter()
+
+
+def _check_tenant(current_user: SysUser, target_tenant_id: str) -> None:
+    if current_user.user_type != 0 and target_tenant_id != current_user.tenant_id:
+        raise HTTPException(status_code=403, detail="无权访问其他租户的数据")
 
 
 def build_tree(depts: list[SysDept], parent_id: int = 0) -> list[dict]:
@@ -25,11 +31,14 @@ def build_tree(depts: list[SysDept], parent_id: int = 0) -> list[dict]:
 async def dept_tree(
     tenant_id: str | None = None,
     db: AsyncSession = Depends(get_db),
-    _=Depends(get_current_user),
+    current_user: SysUser = Depends(get_current_user),
 ):
     q = select(SysDept).where(SysDept.deleted == 0, SysDept.status == 1)
-    if tenant_id:
-        q = q.where(SysDept.tenant_id == tenant_id)
+    if current_user.user_type == 0:
+        if tenant_id:
+            q = q.where(SysDept.tenant_id == tenant_id)
+    else:
+        q = q.where(SysDept.tenant_id == current_user.tenant_id)
     depts = (await db.execute(q)).scalars().all()
     return success(build_tree(list(depts)))
 
@@ -42,12 +51,14 @@ async def list_depts(
     dept_name: str | None = None,
     status: int | None = None,
     db: AsyncSession = Depends(get_db),
-    _=Depends(get_current_user),
+    current_user: SysUser = Depends(get_current_user),
 ):
-    from sqlalchemy import func
     q = select(SysDept).where(SysDept.deleted == 0)
-    if tenant_id:
-        q = q.where(SysDept.tenant_id == tenant_id)
+    if current_user.user_type == 0:
+        if tenant_id:
+            q = q.where(SysDept.tenant_id == tenant_id)
+    else:
+        q = q.where(SysDept.tenant_id == current_user.tenant_id)
     if dept_name:
         q = q.where(SysDept.dept_name.like(f"%{dept_name}%"))
     if status is not None:
@@ -59,15 +70,17 @@ async def list_depts(
 
 
 @router.get("/get/{id}")
-async def get_dept(id: int, db: AsyncSession = Depends(get_db), _=Depends(get_current_user)):
+async def get_dept(id: int, db: AsyncSession = Depends(get_db), current_user: SysUser = Depends(get_current_user)):
     dept = (await db.execute(select(SysDept).where(SysDept.id == id, SysDept.deleted == 0))).scalar_one_or_none()
     if not dept:
         raise HTTPException(status_code=404, detail="部门不存在")
+    _check_tenant(current_user, dept.tenant_id)
     return success(DeptOut.model_validate(dept))
 
 
 @router.post("/create")
-async def create_dept(data: DeptCreate, db: AsyncSession = Depends(get_db), _=Depends(get_current_user)):
+async def create_dept(data: DeptCreate, db: AsyncSession = Depends(get_db), current_user: SysUser = Depends(get_current_user)):
+    _check_tenant(current_user, data.tenant_id)
     dept = SysDept(**data.model_dump())
     db.add(dept)
     await db.commit()
@@ -76,10 +89,11 @@ async def create_dept(data: DeptCreate, db: AsyncSession = Depends(get_db), _=De
 
 
 @router.put("/update/{id}")
-async def update_dept(id: int, data: DeptUpdate, db: AsyncSession = Depends(get_db), _=Depends(get_current_user)):
+async def update_dept(id: int, data: DeptUpdate, db: AsyncSession = Depends(get_db), current_user: SysUser = Depends(get_current_user)):
     dept = (await db.execute(select(SysDept).where(SysDept.id == id, SysDept.deleted == 0))).scalar_one_or_none()
     if not dept:
         raise HTTPException(status_code=404, detail="部门不存在")
+    _check_tenant(current_user, dept.tenant_id)
     for k, v in data.model_dump(exclude_none=True).items():
         setattr(dept, k, v)
     await db.commit()
@@ -88,10 +102,11 @@ async def update_dept(id: int, data: DeptUpdate, db: AsyncSession = Depends(get_
 
 
 @router.delete("/delete/{id}")
-async def delete_dept(id: int, db: AsyncSession = Depends(get_db), _=Depends(get_current_user)):
+async def delete_dept(id: int, db: AsyncSession = Depends(get_db), current_user: SysUser = Depends(get_current_user)):
     dept = (await db.execute(select(SysDept).where(SysDept.id == id, SysDept.deleted == 0))).scalar_one_or_none()
     if not dept:
         raise HTTPException(status_code=404, detail="部门不存在")
+    _check_tenant(current_user, dept.tenant_id)
     dept.deleted = 1
     await db.commit()
     return success(msg="删除成功")
