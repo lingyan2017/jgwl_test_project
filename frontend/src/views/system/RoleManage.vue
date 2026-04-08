@@ -31,7 +31,7 @@
         <el-table-column prop="role_sort"  label="排序"  width="80" />
         <el-table-column prop="data_scope" label="数据范围" width="110">
           <template #default="{row}">
-            {{ {1:'全部数据',2:'自定义',3:'本部门',4:'本部门及以下'}[row.data_scope] }}
+            {{ ({1:'全部数据',2:'自定义',3:'本部门',4:'本部门及以下'} as Record<number,string>)[row.data_scope] }}
           </template>
         </el-table-column>
         <el-table-column prop="status" label="状态" width="80">
@@ -103,7 +103,7 @@ const rules={tenant_id:[{required:true,message:'必填',trigger:'blur'}],role_na
 
 async function loadData(){
   loading.value=true
-  try{const p={...query};if(!p.tenant_id)delete p.tenant_id;if(!p.role_name)delete p.role_name;if(p.status===null)delete p.status;const res=await getRoleList(p);tableData.value=res.data.items;total.value=res.data.total}
+  try{const p: Record<string,unknown>={...query};if(!p.tenant_id)delete p.tenant_id;if(!p.role_name)delete p.role_name;if(p.status===null)delete p.status;const res=await getRoleList(p);tableData.value=res.data.items;total.value=res.data.total}
   finally{loading.value=false}
 }
 function resetQuery(){Object.assign(query,{page:1,page_size:10,tenant_id:'',role_name:'',status:null});loadData()}

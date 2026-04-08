@@ -25,6 +25,7 @@ export interface UserInfo {
   avatar: string | null
   email?: string | null
   phone?: string | null
+  status?: number
 }
 
 /** 登录响应 */

@@ -96,7 +96,7 @@ const rules={menu_name:[{required:true,message:'必填',trigger:'blur'}]}
 
 async function loadData(){
   loading.value=true
-  try{const p={...query};if(!p.menu_name)delete p.menu_name;if(p.status===null)delete p.status;const res=await getMenuList(p);tableData.value=res.data.items;total.value=res.data.total}
+  try{const p: Record<string,unknown>={...query};if(!p.menu_name)delete p.menu_name;if(p.status===null)delete p.status;const res=await getMenuList(p);tableData.value=res.data.items;total.value=res.data.total}
   finally{loading.value=false}
 }
 function resetQuery(){Object.assign(query,{page:1,page_size:10,menu_name:'',status:null});loadData()}
@@ -109,7 +109,7 @@ function openDialog(row: MenuInfo | null = null): void {
 async function handleSubmit(){
   await formRef.value?.validate();submitting.value=true
   try{
-    const payload={...form};Object.keys(payload).forEach(k=>{if(payload[k]==='')payload[k]=null})
+    const payload: Record<string, unknown> = {...form};Object.keys(payload).forEach(k=>{if((payload as Record<string,unknown>)[k]==='')(payload as Record<string,unknown>)[k]=null})
     payload.menu_name=form.menu_name;payload.parent_id=form.parent_id;payload.menu_type=form.menu_type;payload.order_num=form.order_num;payload.visible=form.visible;payload.status=form.status
     if(editRow.value) await updateMenu(editRow.value.id,payload)
     else await createMenu(payload)

@@ -99,7 +99,7 @@ const rules={perm_code:[{required:true,message:'必填',trigger:'blur'}],perm_na
 async function loadData(){
   loading.value=true
   try{
-    const p={...query};if(!p.perm_name)delete p.perm_name;if(p.perm_type===null)delete p.perm_type;if(p.status===null)delete p.status
+    const p: Record<string,unknown>={...query};if(!p.perm_name)delete p.perm_name;if(p.perm_type===null)delete p.perm_type;if(p.status===null)delete p.status
     const res=await getPermissionList(p);tableData.value=res.data.items;total.value=res.data.total
   }finally{loading.value=false}
 }
@@ -113,8 +113,8 @@ function openDialog(row: PermissionInfo | null = null): void {
 async function handleSubmit(){
   await formRef.value?.validate();submitting.value=true
   try{
-    const payload={...form};if(!payload.resource_url)payload.resource_url=null;if(!payload.method)payload.method=null
-    if(editRow.value) await updatePermission(editRow.value.id,{perm_name:payload.perm_name,perm_type:payload.perm_type,resource_url:payload.resource_url,method:payload.method,status:payload.status})
+    const payload: Record<string,unknown>={...form};if(!payload.resource_url)payload.resource_url=null;if(!payload.method)payload.method=null
+    if(editRow.value) await updatePermission(editRow.value.id,{perm_name:form.perm_name,perm_type:form.perm_type,resource_url:payload.resource_url as string|null,method:payload.method as string|null,status:form.status})
     else await createPermission(payload)
     ElMessage.success(editRow.value?'更新成功':'创建成功');dialogVisible.value=false;loadData()
   }finally{submitting.value=false}

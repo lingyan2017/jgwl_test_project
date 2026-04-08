@@ -25,7 +25,7 @@
         <el-descriptions-item label="所属租户">{{ authStore.user?.tenant_id }}</el-descriptions-item>
         <el-descriptions-item label="用户类型">
           <el-tag :type="authStore.user?.user_type === 0 ? 'danger' : 'primary'">
-            {{ userTypeMap[authStore.user?.user_type] }}
+            {{ userTypeMap[authStore.user?.user_type ?? 2] }}
           </el-tag>
         </el-descriptions-item>
         <el-descriptions-item label="系统版本">v1.0.0</el-descriptions-item>
