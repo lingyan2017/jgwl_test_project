@@ -62,6 +62,23 @@
               <template #title>权限管理</template>
             </el-menu-item>
           </el-sub-menu>
+          
+          <!-- 测试管理菜单 - 仅管理员(user_type <= 1)可见 -->
+          <el-sub-menu v-if="isAdmin" index="/test">
+            <template #title>
+              <el-icon><Document /></el-icon>
+              <span>测试管理</span>
+            </template>
+            
+            <el-menu-item index="/test/test-query-data">
+              <el-icon><Document /></el-icon>
+              <template #title>测试查询数据</template>
+            </el-menu-item>
+            <el-menu-item index="/test/sys-config">
+              <el-icon><Setting /></el-icon>
+              <template #title>系统配置</template>
+            </el-menu-item>
+          </el-sub-menu>
         </el-menu>
       </el-scrollbar>
     </el-aside>
