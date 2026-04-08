@@ -37,7 +37,7 @@
         <el-table-column prop="user_type" label="类型"  width="110">
           <template #default="{ row }">
             <el-tag :type="row.user_type===0?'danger':row.user_type===1?'warning':'info'">
-              {{ ({0:'超级管理员',1:'租户管理员',2:'普通用户'} as Record<number,string>)[row.user_type] }}
+              {{ userTypeMap[row.user_type] }}
             </el-tag>
           </template>
         </el-table-column>
@@ -140,6 +140,7 @@ import { useAuthStore } from '@/stores/auth'
 import type { UserInfo } from '@/types'
 
 const authStore = useAuthStore()
+const userTypeMap: Record<number, string> = { 0: '超级管理员', 1: '租户管理员', 2: '普通用户' }
 
 const loading = ref<boolean>(false)
 const submitting = ref<boolean>(false)

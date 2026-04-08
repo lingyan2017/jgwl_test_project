@@ -7,10 +7,10 @@ class Settings(BaseSettings):
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
 
-    DB_HOST: str = "127.0.0.1"
+    DB_HOST: str = "123.56.164.133"
     DB_PORT: int = 3306
     DB_USER: str = "root"
-    DB_PASSWORD: str = "123456a!"
+    DB_PASSWORD: str = "1qaz3edc"
     DB_NAME: str = "jgwl_db"
 
     @property
