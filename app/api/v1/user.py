@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,12 +13,18 @@ from app.schemas.common import success
 from app.schemas.user import UserCreate, UserOut, UserUpdate
 
 router = APIRouter()
+logger = logging.getLogger("app.user")
 
 
 def _check_tenant(current_user: SysUser, target_tenant_id: str) -> None:
     """非超级管理员只能操作自己租户的数据"""
     if current_user.user_type != 0 and target_tenant_id != current_user.tenant_id:
         raise HTTPException(status_code=403, detail="无权访问其他租户的数据")
+
+
+def _op(u: SysUser) -> str:
+    """格式化操作人信息"""
+    return f"{u.username}(id={u.id},tenant={u.tenant_id})"
 
 
 @router.get("/list")
@@ -33,15 +41,12 @@ async def list_users(
     q = select(SysUser).where(SysUser.deleted == 0)
 
     if current_user.user_type == 0:
-        # 超级管理员：可跨租户查看，可按 tenant_id 筛选
         if tenant_id:
             q = q.where(SysUser.tenant_id == tenant_id)
     elif current_user.user_type == 1:
-        # 租户管理员：只能看本租户用户，且看不到超级管理员
         q = q.where(SysUser.tenant_id == current_user.tenant_id)
         q = q.where(SysUser.user_type != 0)
     else:
-        # 普通用户：只能看自己
         q = q.where(SysUser.id == current_user.id)
 
     if username:
@@ -61,10 +66,8 @@ async def get_user(id: int, db: AsyncSession = Depends(get_db), current_user: Sy
     user = (await db.execute(select(SysUser).where(SysUser.id == id, SysUser.deleted == 0))).scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="用户不存在")
-    # 非超级管理员看不到超级管理员账号
     if current_user.user_type != 0 and user.user_type == 0:
         raise HTTPException(status_code=403, detail="权限不足")
-    # 普通用户只能查看自己
     if current_user.user_type == 2 and user.id != current_user.id:
         raise HTTPException(status_code=403, detail="权限不足")
     _check_tenant(current_user, user.tenant_id)
@@ -75,7 +78,7 @@ async def get_user(id: int, db: AsyncSession = Depends(get_db), current_user: Sy
 async def create_user(
     data: UserCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: SysUser = Depends(require_admin),   # 仅管理员可创建
+    current_user: SysUser = Depends(require_admin),
 ):
     _check_tenant(current_user, data.tenant_id)
     existing = (await db.execute(
@@ -96,6 +99,10 @@ async def create_user(
 
     await db.commit()
     await db.refresh(user)
+    logger.info(
+        "[USER] create  operator=%s -> new_user=%s(id=%d) tenant=%s",
+        _op(current_user), user.username, user.id, user.tenant_id,
+    )
     return success(UserOut.model_validate(user))
 
 
@@ -109,21 +116,19 @@ async def update_user(
     user = (await db.execute(select(SysUser).where(SysUser.id == id, SysUser.deleted == 0))).scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="用户不存在")
-    # 非超级管理员不能修改超级管理员账号
     if current_user.user_type != 0 and user.user_type == 0:
         raise HTTPException(status_code=403, detail="权限不足")
 
-    # 普通用户只能修改自己，且不能修改角色/用户类型
     if current_user.user_type == 2:
         if user.id != current_user.id:
             raise HTTPException(status_code=403, detail="权限不足")
-        # 限制普通用户可修改的字段
         allowed = {k: v for k, v in data.model_dump(exclude_none=True).items()
                    if k in ("real_name", "email", "phone", "avatar")}
         for k, v in allowed.items():
             setattr(user, k, v)
         await db.commit()
         await db.refresh(user)
+        logger.info("[USER] update(self)  operator=%s fields=%s", _op(current_user), list(allowed.keys()))
         return success(UserOut.model_validate(user))
 
     _check_tenant(current_user, user.tenant_id)
@@ -138,6 +143,10 @@ async def update_user(
 
     await db.commit()
     await db.refresh(user)
+    logger.info(
+        "[USER] update  operator=%s -> user_id=%d username=%s",
+        _op(current_user), user.id, user.username,
+    )
     return success(UserOut.model_validate(user))
 
 
@@ -145,17 +154,20 @@ async def update_user(
 async def delete_user(
     id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: SysUser = Depends(require_admin),   # 仅管理员可删除
+    current_user: SysUser = Depends(require_admin),
 ):
     user = (await db.execute(select(SysUser).where(SysUser.id == id, SysUser.deleted == 0))).scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="用户不存在")
-    # 非超级管理员不能删除超级管理员账号
     if current_user.user_type != 0 and user.user_type == 0:
         raise HTTPException(status_code=403, detail="权限不足")
     _check_tenant(current_user, user.tenant_id)
     user.deleted = 1
     await db.commit()
+    logger.warning(
+        "[USER] delete  operator=%s -> user_id=%d username=%s tenant=%s",
+        _op(current_user), user.id, user.username, user.tenant_id,
+    )
     return success(msg="删除成功")
 
 

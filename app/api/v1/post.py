@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,11 +12,16 @@ from app.schemas.common import success
 from app.schemas.post import PostCreate, PostOut, PostUpdate
 
 router = APIRouter()
+logger = logging.getLogger("app.post")
 
 
 def _check_tenant(current_user: SysUser, target_tenant_id: str) -> None:
     if current_user.user_type != 0 and target_tenant_id != current_user.tenant_id:
         raise HTTPException(status_code=403, detail="无权访问其他租户的数据")
+
+
+def _op(u: SysUser) -> str:
+    return f"{u.username}(id={u.id},tenant={u.tenant_id})"
 
 
 @router.get("/list")
@@ -59,6 +66,10 @@ async def create_post(data: PostCreate, db: AsyncSession = Depends(get_db), curr
     db.add(post)
     await db.commit()
     await db.refresh(post)
+    logger.info(
+        "[POST] create  operator=%s -> post_name=%s id=%d tenant=%s",
+        _op(current_user), post.post_name, post.id, post.tenant_id,
+    )
     return success(PostOut.model_validate(post))
 
 
@@ -72,6 +83,10 @@ async def update_post(id: int, data: PostUpdate, db: AsyncSession = Depends(get_
         setattr(post, k, v)
     await db.commit()
     await db.refresh(post)
+    logger.info(
+        "[POST] update  operator=%s -> post_id=%d name=%s",
+        _op(current_user), post.id, post.post_name,
+    )
     return success(PostOut.model_validate(post))
 
 
@@ -83,4 +98,8 @@ async def delete_post(id: int, db: AsyncSession = Depends(get_db), current_user:
     _check_tenant(current_user, post.tenant_id)
     post.deleted = 1
     await db.commit()
+    logger.warning(
+        "[POST] delete  operator=%s -> post_id=%d name=%s tenant=%s",
+        _op(current_user), post.id, post.post_name, post.tenant_id,
+    )
     return success(msg="删除成功")

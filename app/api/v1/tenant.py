@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,11 +12,16 @@ from app.schemas.common import success
 from app.schemas.tenant import TenantCreate, TenantOut, TenantUpdate
 
 router = APIRouter()
+logger = logging.getLogger("app.tenant")
 
 
 def _check_tenant(current_user: SysUser, target_tenant_id: str) -> None:
     if current_user.user_type != 0 and target_tenant_id != current_user.tenant_id:
         raise HTTPException(status_code=403, detail="无权访问其他租户的数据")
+
+
+def _op(u: SysUser) -> str:
+    return f"{u.username}(id={u.id})"
 
 
 @router.get("/list")
@@ -27,7 +34,6 @@ async def list_tenants(
     current_user: SysUser = Depends(get_current_user),
 ):
     q = select(SysTenant).where(SysTenant.deleted == 0)
-    # 非超级管理员只能看到自己所属的租户
     if current_user.user_type != 0:
         q = q.where(SysTenant.tenant_id == current_user.tenant_id)
     if tenant_name:
@@ -61,6 +67,10 @@ async def create_tenant(data: TenantCreate, db: AsyncSession = Depends(get_db), 
     db.add(tenant)
     await db.commit()
     await db.refresh(tenant)
+    logger.info(
+        "[TENANT] create  operator=%s -> tenant_id=%s name=%s",
+        _op(current_user), tenant.tenant_id, tenant.tenant_name,
+    )
     return success(TenantOut.model_validate(tenant))
 
 
@@ -74,6 +84,10 @@ async def update_tenant(id: int, data: TenantUpdate, db: AsyncSession = Depends(
         setattr(tenant, k, v)
     await db.commit()
     await db.refresh(tenant)
+    logger.info(
+        "[TENANT] update  operator=%s -> tenant_id=%s id=%d",
+        _op(current_user), tenant.tenant_id, tenant.id,
+    )
     return success(TenantOut.model_validate(tenant))
 
 
@@ -85,4 +99,8 @@ async def delete_tenant(id: int, db: AsyncSession = Depends(get_db), current_use
     _check_tenant(current_user, tenant.tenant_id)
     tenant.deleted = 1
     await db.commit()
+    logger.warning(
+        "[TENANT] delete  operator=%s -> tenant_id=%s id=%d",
+        _op(current_user), tenant.tenant_id, tenant.id,
+    )
     return success(msg="删除成功")

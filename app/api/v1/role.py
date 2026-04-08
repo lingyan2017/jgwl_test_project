@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,11 +12,16 @@ from app.schemas.common import success
 from app.schemas.role import RoleCreate, RoleOut, RoleUpdate
 
 router = APIRouter()
+logger = logging.getLogger("app.role")
 
 
 def _check_tenant(current_user: SysUser, target_tenant_id: str) -> None:
     if current_user.user_type != 0 and target_tenant_id != current_user.tenant_id:
         raise HTTPException(status_code=403, detail="无权访问其他租户的数据")
+
+
+def _op(u: SysUser) -> str:
+    return f"{u.username}(id={u.id},tenant={u.tenant_id})"
 
 
 @router.get("/list")
@@ -66,6 +73,10 @@ async def create_role(data: RoleCreate, db: AsyncSession = Depends(get_db), curr
         db.add(SysRoleMenu(role_id=role.id, menu_id=mid))
     await db.commit()
     await db.refresh(role)
+    logger.info(
+        "[ROLE] create  operator=%s -> role_name=%s id=%d tenant=%s menu_ids=%s",
+        _op(current_user), role.role_name, role.id, role.tenant_id, menu_ids,
+    )
     return success(RoleOut.model_validate(role))
 
 
@@ -84,6 +95,10 @@ async def update_role(id: int, data: RoleUpdate, db: AsyncSession = Depends(get_
             db.add(SysRoleMenu(role_id=id, menu_id=mid))
     await db.commit()
     await db.refresh(role)
+    logger.info(
+        "[ROLE] update  operator=%s -> role_id=%d name=%s",
+        _op(current_user), role.id, role.role_name,
+    )
     return success(RoleOut.model_validate(role))
 
 
@@ -95,4 +110,8 @@ async def delete_role(id: int, db: AsyncSession = Depends(get_db), current_user:
     _check_tenant(current_user, role.tenant_id)
     role.deleted = 1
     await db.commit()
+    logger.warning(
+        "[ROLE] delete  operator=%s -> role_id=%d name=%s tenant=%s",
+        _op(current_user), role.id, role.role_name, role.tenant_id,
+    )
     return success(msg="删除成功")

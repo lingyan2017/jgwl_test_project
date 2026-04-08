@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,6 +11,7 @@ from app.schemas.common import success
 from app.schemas.permission import PermissionCreate, PermissionOut, PermissionUpdate
 
 router = APIRouter()
+logger = logging.getLogger("app.permission")
 
 
 @router.get("/list")
@@ -43,18 +46,22 @@ async def get_permission(id: int, db: AsyncSession = Depends(get_db), _=Depends(
 
 
 @router.post("/create")
-async def create_permission(data: PermissionCreate, db: AsyncSession = Depends(get_db), _=Depends(require_super_admin)):
+async def create_permission(data: PermissionCreate, db: AsyncSession = Depends(get_db), current_user=Depends(require_super_admin)):
     if (await db.execute(select(SysPermission).where(SysPermission.perm_code == data.perm_code))).scalar_one_or_none():
         raise HTTPException(status_code=400, detail="权限编码已存在")
     perm = SysPermission(**data.model_dump())
     db.add(perm)
     await db.commit()
     await db.refresh(perm)
+    logger.info(
+        "[PERMISSION] create  operator=%s -> perm_code=%s name=%s id=%d",
+        current_user.username, perm.perm_code, perm.perm_name, perm.id,
+    )
     return success(PermissionOut.model_validate(perm))
 
 
 @router.put("/update/{id}")
-async def update_permission(id: int, data: PermissionUpdate, db: AsyncSession = Depends(get_db), _=Depends(require_super_admin)):
+async def update_permission(id: int, data: PermissionUpdate, db: AsyncSession = Depends(get_db), current_user=Depends(require_super_admin)):
     perm = (await db.execute(select(SysPermission).where(SysPermission.id == id, SysPermission.deleted == 0))).scalar_one_or_none()
     if not perm:
         raise HTTPException(status_code=404, detail="权限不存在")
@@ -62,14 +69,22 @@ async def update_permission(id: int, data: PermissionUpdate, db: AsyncSession = 
         setattr(perm, k, v)
     await db.commit()
     await db.refresh(perm)
+    logger.info(
+        "[PERMISSION] update  operator=%s -> perm_id=%d code=%s",
+        current_user.username, perm.id, perm.perm_code,
+    )
     return success(PermissionOut.model_validate(perm))
 
 
 @router.delete("/delete/{id}")
-async def delete_permission(id: int, db: AsyncSession = Depends(get_db), _=Depends(require_super_admin)):
+async def delete_permission(id: int, db: AsyncSession = Depends(get_db), current_user=Depends(require_super_admin)):
     perm = (await db.execute(select(SysPermission).where(SysPermission.id == id, SysPermission.deleted == 0))).scalar_one_or_none()
     if not perm:
         raise HTTPException(status_code=404, detail="权限不存在")
     perm.deleted = 1
     await db.commit()
+    logger.warning(
+        "[PERMISSION] delete  operator=%s -> perm_id=%d code=%s",
+        current_user.username, perm.id, perm.perm_code,
+    )
     return success(msg="删除成功")

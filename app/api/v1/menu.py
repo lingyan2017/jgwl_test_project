@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,6 +11,7 @@ from app.schemas.common import success
 from app.schemas.menu import MenuCreate, MenuOut, MenuUpdate
 
 router = APIRouter()
+logger = logging.getLogger("app.menu")
 
 
 def build_menu_tree(menus: list, parent_id: int = 0) -> list:
@@ -56,16 +59,20 @@ async def get_menu(id: int, db: AsyncSession = Depends(get_db), _=Depends(get_cu
 
 
 @router.post("/create")
-async def create_menu(data: MenuCreate, db: AsyncSession = Depends(get_db), _=Depends(require_super_admin)):
+async def create_menu(data: MenuCreate, db: AsyncSession = Depends(get_db), current_user=Depends(require_super_admin)):
     menu = SysMenu(**data.model_dump())
     db.add(menu)
     await db.commit()
     await db.refresh(menu)
+    logger.info(
+        "[MENU] create  operator=%s -> menu_name=%s id=%d",
+        current_user.username, menu.menu_name, menu.id,
+    )
     return success(MenuOut.model_validate(menu))
 
 
 @router.put("/update/{id}")
-async def update_menu(id: int, data: MenuUpdate, db: AsyncSession = Depends(get_db), _=Depends(require_super_admin)):
+async def update_menu(id: int, data: MenuUpdate, db: AsyncSession = Depends(get_db), current_user=Depends(require_super_admin)):
     menu = (await db.execute(select(SysMenu).where(SysMenu.id == id, SysMenu.deleted == 0))).scalar_one_or_none()
     if not menu:
         raise HTTPException(status_code=404, detail="菜单不存在")
@@ -73,14 +80,22 @@ async def update_menu(id: int, data: MenuUpdate, db: AsyncSession = Depends(get_
         setattr(menu, k, v)
     await db.commit()
     await db.refresh(menu)
+    logger.info(
+        "[MENU] update  operator=%s -> menu_id=%d name=%s",
+        current_user.username, menu.id, menu.menu_name,
+    )
     return success(MenuOut.model_validate(menu))
 
 
 @router.delete("/delete/{id}")
-async def delete_menu(id: int, db: AsyncSession = Depends(get_db), _=Depends(require_super_admin)):
+async def delete_menu(id: int, db: AsyncSession = Depends(get_db), current_user=Depends(require_super_admin)):
     menu = (await db.execute(select(SysMenu).where(SysMenu.id == id, SysMenu.deleted == 0))).scalar_one_or_none()
     if not menu:
         raise HTTPException(status_code=404, detail="菜单不存在")
     menu.deleted = 1
     await db.commit()
+    logger.warning(
+        "[MENU] delete  operator=%s -> menu_id=%d name=%s",
+        current_user.username, menu.id, menu.menu_name,
+    )
     return success(msg="删除成功")

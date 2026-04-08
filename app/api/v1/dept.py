@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,11 +12,16 @@ from app.schemas.common import success
 from app.schemas.dept import DeptCreate, DeptOut, DeptUpdate
 
 router = APIRouter()
+logger = logging.getLogger("app.dept")
 
 
 def _check_tenant(current_user: SysUser, target_tenant_id: str) -> None:
     if current_user.user_type != 0 and target_tenant_id != current_user.tenant_id:
         raise HTTPException(status_code=403, detail="无权访问其他租户的数据")
+
+
+def _op(u: SysUser) -> str:
+    return f"{u.username}(id={u.id},tenant={u.tenant_id})"
 
 
 def build_tree(depts: list[SysDept], parent_id: int = 0) -> list[dict]:
@@ -85,6 +92,10 @@ async def create_dept(data: DeptCreate, db: AsyncSession = Depends(get_db), curr
     db.add(dept)
     await db.commit()
     await db.refresh(dept)
+    logger.info(
+        "[DEPT] create  operator=%s -> dept_name=%s id=%d tenant=%s",
+        _op(current_user), dept.dept_name, dept.id, dept.tenant_id,
+    )
     return success(DeptOut.model_validate(dept))
 
 
@@ -98,6 +109,10 @@ async def update_dept(id: int, data: DeptUpdate, db: AsyncSession = Depends(get_
         setattr(dept, k, v)
     await db.commit()
     await db.refresh(dept)
+    logger.info(
+        "[DEPT] update  operator=%s -> dept_id=%d name=%s",
+        _op(current_user), dept.id, dept.dept_name,
+    )
     return success(DeptOut.model_validate(dept))
 
 
@@ -109,4 +124,8 @@ async def delete_dept(id: int, db: AsyncSession = Depends(get_db), current_user:
     _check_tenant(current_user, dept.tenant_id)
     dept.deleted = 1
     await db.commit()
+    logger.warning(
+        "[DEPT] delete  operator=%s -> dept_id=%d name=%s tenant=%s",
+        _op(current_user), dept.id, dept.dept_name, dept.tenant_id,
+    )
     return success(msg="删除成功")

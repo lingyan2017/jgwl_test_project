@@ -1,6 +1,7 @@
+import logging
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,10 +13,18 @@ from app.schemas.common import success
 from app.schemas.user import LoginRequest
 
 router = APIRouter()
+logger = logging.getLogger("app.auth")
+
+
+def _get_ip(request: Request) -> str:
+    return request.headers.get("x-forwarded-for") or (
+        request.client.host if request.client else "unknown"
+    )
 
 
 @router.post("/login")
-async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
+async def login(data: LoginRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    ip = _get_ip(request)
     result = await db.execute(
         select(SysUser).where(
             SysUser.username == data.username,
@@ -26,8 +35,16 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
     user = result.scalar_one_or_none()
 
     if not user or not verify_password(data.password, user.password):
+        logger.warning(
+            "[AUTH] login failed  user=%s tenant=%s ip=%s reason=用户名或密码错误",
+            data.username, data.tenant_id, ip,
+        )
         raise HTTPException(status_code=400, detail="用户名或密码错误")
     if user.status != 1:
+        logger.warning(
+            "[AUTH] login failed  user=%s tenant=%s ip=%s reason=账号已被禁用",
+            data.username, data.tenant_id, ip,
+        )
         raise HTTPException(status_code=400, detail="账号已被禁用")
 
     await db.execute(
@@ -36,6 +53,10 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
     await db.commit()
 
     token = create_access_token({"sub": str(user.id), "tenant_id": user.tenant_id})
+    logger.info(
+        "[AUTH] login success  user=%s(id=%d) tenant=%s user_type=%d ip=%s",
+        user.username, user.id, user.tenant_id, user.user_type, ip,
+    )
     return success(
         {
             "access_token": token,
@@ -70,4 +91,8 @@ async def get_me(current_user: SysUser = Depends(get_current_user)):
 
 @router.post("/logout")
 async def logout(current_user: SysUser = Depends(get_current_user)):
+    logger.info(
+        "[AUTH] logout  user=%s(id=%d) tenant=%s",
+        current_user.username, current_user.id, current_user.tenant_id,
+    )
     return success(msg="退出成功")

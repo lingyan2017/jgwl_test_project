@@ -1,0 +1,243 @@
+2026-04-08 00:05:03.300 | INFO     | test | [TEST] logger init ok
+2026-04-08 00:05:03.300 | WARNING  | test | [TEST] warning ok
+2026-04-08 00:07:13.539 | INFO     | watchfiles.main | 5 changes detected
+2026-04-08 00:07:38.584 | INFO     | watchfiles.main | 3 changes detected
+2026-04-08 00:07:38.937 | INFO     | watchfiles.main | 155 changes detected
+2026-04-08 00:07:40.989 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:07:44.567 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:07:44.927 | INFO     | watchfiles.main | 4 changes detected
+2026-04-08 00:07:55.039 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:10:45.229 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:10:45.591 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:11:25.526 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:11:30.408 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:11:53.375 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:11:54.081 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:11:55.246 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:12:22.098 | INFO     | watchfiles.main | 9 changes detected
+2026-04-08 00:12:34.028 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:12:35.798 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:13:01.745 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:13:03.863 | INFO     | watchfiles.main | 8 changes detected
+2026-04-08 00:13:04.584 | INFO     | app.auth | [AUTH] login success  user=admin(id=1) tenant=default user_type=0 ip=127.0.0.1
+2026-04-08 00:13:04.585 | INFO     | app.request | [REQUEST] POST /api/v1/auth/login -> 200  805.3ms  ip=127.0.0.1
+2026-04-08 00:13:13.302 | INFO     | app.auth | [AUTH] login success  user=admin(id=1) tenant=default user_type=0 ip=127.0.0.1
+2026-04-08 00:13:13.303 | INFO     | app.request | [REQUEST] POST /api/v1/auth/login -> 200  392.6ms  ip=127.0.0.1
+2026-04-08 00:13:13.378 | WARNING  | app.request | [REQUEST] GET /api/v1/users/list -> 401  2.1ms  ip=127.0.0.1
+2026-04-08 00:13:13.595 | WARNING  | app.request | [REQUEST] GET /api/v1/tenants/list -> 401  1.1ms  ip=127.0.0.1
+2026-04-08 00:13:13.709 | WARNING  | app.request | [REQUEST] GET /api/v1/roles/list -> 401  2.1ms  ip=127.0.0.1
+2026-04-08 00:13:50.307 | INFO     | app.auth | [AUTH] login success  user=admin(id=1) tenant=default user_type=0 ip=127.0.0.1
+2026-04-08 00:13:50.308 | INFO     | app.request | [REQUEST] POST /api/v1/auth/login -> 200  450.5ms  ip=127.0.0.1
+2026-04-08 00:13:50.423 | INFO     | app.request | [REQUEST] GET /api/v1/users/list -> 200  110.3ms  ip=127.0.0.1
+2026-04-08 00:13:50.563 | INFO     | app.request | [REQUEST] GET /api/v1/tenants/list -> 200  136.4ms  ip=127.0.0.1
+2026-04-08 00:13:50.711 | INFO     | app.request | [REQUEST] GET /api/v1/roles/list -> 200  145.0ms  ip=127.0.0.1
+2026-04-08 00:13:50.869 | INFO     | app.request | [REQUEST] GET /api/v1/depts/list -> 200  154.9ms  ip=127.0.0.1
+2026-04-08 00:13:51.160 | INFO     | app.request | [REQUEST] GET /api/v1/posts/list -> 200  287.7ms  ip=127.0.0.1
+2026-04-08 00:13:51.312 | INFO     | app.request | [REQUEST] GET /api/v1/menus/list -> 200  148.3ms  ip=127.0.0.1
+2026-04-08 00:13:51.388 | INFO     | app.request | [REQUEST] GET /api/v1/permissions/list -> 200  72.0ms  ip=127.0.0.1
+2026-04-08 00:14:04.169 | INFO     | app.auth | [AUTH] login success  user=admin(id=1) tenant=default user_type=0 ip=127.0.0.1
+2026-04-08 00:14:04.170 | INFO     | app.request | [REQUEST] POST /api/v1/auth/login -> 200  430.7ms  ip=127.0.0.1
+2026-04-08 00:14:04.299 | INFO     | app.dept | [DEPT] create  operator=admin(id=1,tenant=default) -> dept_name=测试部门 id=4 tenant=default
+2026-04-08 00:14:04.302 | INFO     | app.request | [REQUEST] POST /api/v1/depts/create -> 200  129.0ms  ip=127.0.0.1
+2026-04-08 00:14:04.448 | INFO     | app.role | [ROLE] create  operator=admin(id=1,tenant=default) -> role_name=测试角色 id=4 tenant=default menu_ids=[]
+2026-04-08 00:14:04.449 | INFO     | app.request | [REQUEST] POST /api/v1/roles/create -> 200  144.0ms  ip=127.0.0.1
+2026-04-08 00:14:04.924 | INFO     | app.user | [USER] create  operator=admin(id=1,tenant=default) -> new_user=testuser99(id=4) tenant=default
+2026-04-08 00:14:04.925 | INFO     | app.request | [REQUEST] POST /api/v1/users/create -> 200  472.4ms  ip=127.0.0.1
+2026-04-08 00:14:13.080 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:14:15.061 | INFO     | watchfiles.main | 4 changes detected
+2026-04-08 00:14:27.894 | INFO     | watchfiles.main | 2 changes detected
+2026-04-08 00:14:38.188 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:14:48.714 | INFO     | app.auth | [AUTH] login success  user=admin(id=1) tenant=default user_type=0 ip=127.0.0.1
+2026-04-08 00:14:48.715 | INFO     | app.request | [REQUEST] POST /api/v1/auth/login -> 200  345.0ms  ip=127.0.0.1
+2026-04-08 00:14:49.253 | INFO     | app.auth | [AUTH] login success  user=testuser99(id=4) tenant=default user_type=2 ip=127.0.0.1
+2026-04-08 00:14:49.254 | INFO     | app.request | [REQUEST] POST /api/v1/auth/login -> 200  536.1ms  ip=127.0.0.1
+2026-04-08 00:14:49.398 | INFO     | app.request | [REQUEST] GET /api/v1/users/list -> 200  140.7ms  ip=127.0.0.1
+2026-04-08 00:14:49.506 | INFO     | app.request | [REQUEST] GET /api/v1/tenants/list -> 200  104.0ms  ip=127.0.0.1
+2026-04-08 00:14:49.603 | WARNING  | app.request | [REQUEST] GET /api/v1/users/get/99999 -> 404  93.8ms  ip=127.0.0.1
+2026-04-08 00:14:49.683 | WARNING  | app.request | [REQUEST] DELETE /api/v1/users/delete/99999 -> 404  76.7ms  ip=127.0.0.1
+2026-04-08 00:14:52.888 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:15:07.923 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:15:12.856 | INFO     | app.request | [REQUEST] OPTIONS /api/v1/auth/login -> 200  0.3ms  ip=127.0.0.1
+2026-04-08 00:15:22.954 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:15:37.943 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:15:52.992 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:15:58.953 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:16:07.998 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:16:08.965 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:16:19.617 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:16:41.841 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:16:47.050 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:17:02.125 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:17:17.162 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:17:32.164 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:17:44.373 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:17:47.246 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:18:02.270 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:18:17.285 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:18:32.268 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:18:47.320 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:19:02.355 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:19:17.388 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:19:32.392 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:19:47.399 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:20:02.438 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:20:17.440 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:20:32.467 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:20:47.512 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:21:02.543 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:21:17.535 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:21:32.609 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:21:34.830 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:22:19.905 | INFO     | watchfiles.main | 4 changes detected
+2026-04-08 00:22:21.994 | INFO     | app.auth | [AUTH] login success  user=admin(id=1) tenant=default user_type=0 ip=127.0.0.1
+2026-04-08 00:22:21.995 | INFO     | app.request | [REQUEST] POST /api/v1/auth/login -> 200  1620.4ms  ip=127.0.0.1
+2026-04-08 00:22:34.566 | INFO     | watchfiles.main | 2 changes detected
+2026-04-08 00:22:49.663 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:23:04.711 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:23:19.768 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:23:34.795 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:23:49.845 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:24:04.871 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:24:19.943 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:24:34.955 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:24:50.008 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:25:05.038 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:25:20.082 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:25:35.112 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:25:50.210 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:26:05.279 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:26:20.350 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:26:35.425 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:26:50.429 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:27:00.371 | INFO     | watchfiles.main | 5 changes detected
+2026-04-08 00:29:36.595 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:31:19.175 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:31:24.317 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:31:31.601 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:31:39.355 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:31:54.398 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:39:05.769 | INFO     | watchfiles.main | 5 changes detected
+2026-04-08 00:39:20.240 | INFO     | app.auth | [AUTH] login success  user=admin(id=1) tenant=default user_type=0 ip=127.0.0.1
+2026-04-08 00:39:20.245 | INFO     | app.request | [REQUEST] POST /api/v1/auth/login -> 200  812.5ms  ip=127.0.0.1
+2026-04-08 00:39:20.531 | INFO     | app.request | [REQUEST] GET /api/v1/tenants/list -> 200  82.8ms  ip=127.0.0.1
+2026-04-08 00:39:53.900 | INFO     | app.request | [REQUEST] GET /api/v1/roles/list -> 200  33445.9ms  ip=127.0.0.1
+2026-04-08 00:39:53.901 | INFO     | app.request | [REQUEST] GET /api/v1/users/list -> 200  33447.3ms  ip=127.0.0.1
+2026-04-08 00:39:53.934 | INFO     | app.request | [REQUEST] GET /api/v1/depts/list -> 200  33467.4ms  ip=127.0.0.1
+2026-04-08 00:41:19.337 | INFO     | watchfiles.main | 4 changes detected
+2026-04-08 00:41:34.011 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:41:34.039 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:42:23.898 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:44:13.362 | INFO     | watchfiles.main | 4 changes detected
+2026-04-08 00:44:19.778 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 00:44:33.787 | INFO     | app.request | [REQUEST] GET /api/v1/tenants/list -> 200  4125.4ms  ip=127.0.0.1
+2026-04-08 00:44:33.792 | INFO     | app.request | [REQUEST] GET /api/v1/roles/list -> 200  4120.9ms  ip=127.0.0.1
+2026-04-08 00:44:33.873 | INFO     | app.request | [REQUEST] GET /api/v1/users/list -> 200  4201.9ms  ip=127.0.0.1
+2026-04-08 00:44:33.921 | INFO     | app.request | [REQUEST] GET /api/v1/depts/list -> 200  4241.4ms  ip=127.0.0.1
+2026-04-08 00:44:38.146 | INFO     | app.request | [REQUEST] GET /api/v1/tenants/list -> 200  82.7ms  ip=127.0.0.1
+2026-04-08 00:45:03.266 | INFO     | app.request | [REQUEST] GET /api/v1/depts/list -> 200  83.0ms  ip=127.0.0.1
+2026-04-08 00:45:03.297 | INFO     | app.request | [REQUEST] GET /api/v1/posts/list -> 200  109.4ms  ip=127.0.0.1
+2026-04-08 00:45:03.408 | INFO     | app.request | [REQUEST] GET /api/v1/users/list -> 200  96.6ms  ip=127.0.0.1
+2026-04-08 00:45:19.964 | INFO     | app.request | [REQUEST] GET /api/v1/depts/list -> 200  98.1ms  ip=127.0.0.1
+2026-04-08 00:45:19.968 | INFO     | app.request | [REQUEST] GET /api/v1/users/roles/2 -> 200  108.6ms  ip=127.0.0.1
+2026-04-08 00:45:19.973 | INFO     | app.request | [REQUEST] GET /api/v1/posts/list -> 200  106.6ms  ip=127.0.0.1
+2026-04-08 00:45:20.010 | INFO     | app.request | [REQUEST] GET /api/v1/roles/list -> 200  143.1ms  ip=127.0.0.1
+2026-04-08 00:45:39.269 | INFO     | app.request | [REQUEST] GET /api/v1/roles/list -> 200  107.9ms  ip=127.0.0.1
+2026-04-08 00:45:42.680 | INFO     | app.request | [REQUEST] GET /api/v1/depts/list -> 200  118.4ms  ip=127.0.0.1
+2026-04-08 00:46:08.582 | INFO     | app.dept | [DEPT] update  operator=admin(id=1,tenant=default) -> dept_id=4 name=jgwl管理部
+2026-04-08 00:46:08.584 | INFO     | app.request | [REQUEST] PUT /api/v1/depts/update/4 -> 200  134.8ms  ip=127.0.0.1
+2026-04-08 00:46:08.706 | INFO     | app.request | [REQUEST] GET /api/v1/depts/list -> 200  88.4ms  ip=127.0.0.1
+2026-04-08 00:46:20.331 | WARNING  | app.dept | [DEPT] delete  operator=admin(id=1,tenant=default) -> dept_id=4 name=jgwl管理部 tenant=default
+2026-04-08 00:46:20.333 | INFO     | app.request | [REQUEST] DELETE /api/v1/depts/delete/4 -> 200  130.9ms  ip=127.0.0.1
+2026-04-08 00:46:20.450 | INFO     | app.request | [REQUEST] GET /api/v1/depts/list -> 200  95.8ms  ip=127.0.0.1
+2026-04-08 00:46:21.923 | INFO     | app.request | [REQUEST] GET /api/v1/tenants/list -> 200  153.8ms  ip=127.0.0.1
+2026-04-08 00:46:35.223 | INFO     | app.dept | [DEPT] create  operator=admin(id=1,tenant=default) -> dept_name=jgwl管理部 id=5 tenant=FacilYa
+2026-04-08 00:46:35.227 | INFO     | app.request | [REQUEST] POST /api/v1/depts/create -> 200  289.5ms  ip=127.0.0.1
+2026-04-08 00:46:35.384 | INFO     | app.request | [REQUEST] GET /api/v1/depts/list -> 200  129.7ms  ip=127.0.0.1
+2026-04-08 00:46:37.981 | INFO     | app.request | [REQUEST] GET /api/v1/posts/list -> 200  200.6ms  ip=127.0.0.1
+2026-04-08 00:46:39.800 | INFO     | app.request | [REQUEST] GET /api/v1/depts/list -> 200  263.5ms  ip=127.0.0.1
+2026-04-08 00:46:40.619 | INFO     | app.request | [REQUEST] GET /api/v1/posts/list -> 200  88.0ms  ip=127.0.0.1
+2026-04-08 00:46:44.884 | INFO     | app.request | [REQUEST] GET /api/v1/posts/list -> 200  146.0ms  ip=127.0.0.1
+2026-04-08 00:46:44.887 | INFO     | app.request | [REQUEST] GET /api/v1/depts/list -> 200  156.4ms  ip=127.0.0.1
+2026-04-08 00:46:44.991 | INFO     | app.request | [REQUEST] GET /api/v1/users/list -> 200  82.6ms  ip=127.0.0.1
+2026-04-08 00:46:47.461 | INFO     | app.request | [REQUEST] GET /api/v1/users/roles/4 -> 200  106.9ms  ip=127.0.0.1
+2026-04-08 00:46:47.474 | INFO     | app.request | [REQUEST] GET /api/v1/posts/list -> 200  114.8ms  ip=127.0.0.1
+2026-04-08 00:46:47.484 | INFO     | app.request | [REQUEST] GET /api/v1/roles/list -> 200  124.8ms  ip=127.0.0.1
+2026-04-08 00:46:47.495 | INFO     | app.request | [REQUEST] GET /api/v1/depts/list -> 200  135.1ms  ip=127.0.0.1
+2026-04-08 00:46:51.537 | INFO     | app.request | [REQUEST] GET /api/v1/users/roles/4 -> 200  78.0ms  ip=127.0.0.1
+2026-04-08 00:46:51.555 | INFO     | app.request | [REQUEST] GET /api/v1/depts/list -> 200  92.0ms  ip=127.0.0.1
+2026-04-08 00:46:51.577 | INFO     | app.request | [REQUEST] GET /api/v1/posts/list -> 200  111.8ms  ip=127.0.0.1
+2026-04-08 00:46:51.584 | INFO     | app.request | [REQUEST] GET /api/v1/roles/list -> 200  117.8ms  ip=127.0.0.1
+2026-04-08 00:46:57.932 | INFO     | app.request | [REQUEST] GET /api/v1/users/roles/2 -> 200  208.8ms  ip=127.0.0.1
+2026-04-08 00:46:58.011 | INFO     | app.request | [REQUEST] GET /api/v1/depts/list -> 200  288.5ms  ip=127.0.0.1
+2026-04-08 00:46:58.041 | INFO     | app.request | [REQUEST] GET /api/v1/roles/list -> 200  308.6ms  ip=127.0.0.1
+2026-04-08 00:46:58.047 | INFO     | app.request | [REQUEST] GET /api/v1/posts/list -> 200  324.2ms  ip=127.0.0.1
+2026-04-08 00:47:06.149 | INFO     | app.user | [USER] update  operator=admin(id=1,tenant=default) -> user_id=2 username=facilya_dev001
+2026-04-08 00:47:06.152 | INFO     | app.request | [REQUEST] PUT /api/v1/users/update/2 -> 200  243.5ms  ip=127.0.0.1
+2026-04-08 00:47:06.289 | INFO     | app.request | [REQUEST] GET /api/v1/users/list -> 200  100.6ms  ip=127.0.0.1
+2026-04-08 00:47:08.351 | INFO     | app.request | [REQUEST] GET /api/v1/depts/list -> 200  99.1ms  ip=127.0.0.1
+2026-04-08 00:47:08.376 | INFO     | app.request | [REQUEST] GET /api/v1/posts/list -> 200  119.7ms  ip=127.0.0.1
+2026-04-08 00:47:08.381 | INFO     | app.request | [REQUEST] GET /api/v1/users/roles/2 -> 200  136.0ms  ip=127.0.0.1
+2026-04-08 00:47:08.383 | INFO     | app.request | [REQUEST] GET /api/v1/roles/list -> 200  127.1ms  ip=127.0.0.1
+2026-04-08 00:47:11.587 | INFO     | app.user | [USER] update  operator=admin(id=1,tenant=default) -> user_id=2 username=facilya_dev001
+2026-04-08 00:47:11.592 | INFO     | app.request | [REQUEST] PUT /api/v1/users/update/2 -> 200  206.6ms  ip=127.0.0.1
+2026-04-08 00:47:11.730 | INFO     | app.request | [REQUEST] GET /api/v1/users/list -> 200  112.6ms  ip=127.0.0.1
+2026-04-08 00:47:15.159 | INFO     | app.request | [REQUEST] GET /api/v1/users/roles/3 -> 200  77.4ms  ip=127.0.0.1
+2026-04-08 00:47:15.171 | INFO     | app.request | [REQUEST] GET /api/v1/depts/list -> 200  85.9ms  ip=127.0.0.1
+2026-04-08 00:47:15.184 | INFO     | app.request | [REQUEST] GET /api/v1/posts/list -> 200  99.6ms  ip=127.0.0.1
+2026-04-08 00:47:15.186 | INFO     | app.request | [REQUEST] GET /api/v1/roles/list -> 200  96.5ms  ip=127.0.0.1
+2026-04-08 00:47:24.683 | INFO     | app.user | [USER] update  operator=admin(id=1,tenant=default) -> user_id=3 username=facilya_admin001
+2026-04-08 00:47:24.685 | INFO     | app.request | [REQUEST] PUT /api/v1/users/update/3 -> 200  197.8ms  ip=127.0.0.1
+2026-04-08 00:47:24.794 | INFO     | app.request | [REQUEST] GET /api/v1/users/list -> 200  89.0ms  ip=127.0.0.1
+2026-04-08 00:47:36.528 | INFO     | app.auth | [AUTH] login success  user=facilya_dev001(id=2) tenant=FacilYa user_type=2 ip=127.0.0.1
+2026-04-08 00:47:36.531 | INFO     | app.request | [REQUEST] POST /api/v1/auth/login -> 200  502.3ms  ip=127.0.0.1
+2026-04-08 00:47:36.768 | INFO     | app.request | [REQUEST] GET /api/v1/users/list -> 200  111.1ms  ip=127.0.0.1
+2026-04-08 00:47:36.778 | INFO     | app.request | [REQUEST] GET /api/v1/tenants/list -> 200  120.3ms  ip=127.0.0.1
+2026-04-08 00:47:36.831 | INFO     | app.request | [REQUEST] GET /api/v1/roles/list -> 200  174.1ms  ip=127.0.0.1
+2026-04-08 00:47:36.835 | INFO     | app.request | [REQUEST] GET /api/v1/depts/list -> 200  171.3ms  ip=127.0.0.1
+2026-04-08 00:47:46.291 | INFO     | app.request | [REQUEST] GET /api/v1/depts/list -> 200  127.3ms  ip=127.0.0.1
+2026-04-08 00:47:46.296 | INFO     | app.request | [REQUEST] GET /api/v1/users/roles/2 -> 200  134.8ms  ip=127.0.0.1
+2026-04-08 00:47:46.298 | INFO     | app.request | [REQUEST] GET /api/v1/posts/list -> 200  133.8ms  ip=127.0.0.1
+2026-04-08 00:47:46.317 | INFO     | app.request | [REQUEST] GET /api/v1/roles/list -> 200  146.3ms  ip=127.0.0.1
+2026-04-08 00:47:50.513 | INFO     | app.request | [REQUEST] GET /api/v1/roles/list -> 200  363.8ms  ip=127.0.0.1
+2026-04-08 00:47:54.454 | INFO     | app.request | [REQUEST] GET /api/v1/menus/tree -> 200  99.3ms  ip=127.0.0.1
+2026-04-08 00:47:54.581 | INFO     | app.request | [REQUEST] GET /api/v1/roles/get/3 -> 200  110.6ms  ip=127.0.0.1
+2026-04-08 00:48:03.521 | INFO     | app.request | [REQUEST] GET /api/v1/depts/list -> 200  256.0ms  ip=127.0.0.1
+2026-04-08 00:48:35.259 | INFO     | app.request | [REQUEST] GET /api/v1/posts/list -> 200  219.1ms  ip=127.0.0.1
+2026-04-08 00:48:37.288 | INFO     | app.request | [REQUEST] GET /api/v1/depts/list -> 200  137.0ms  ip=127.0.0.1
+2026-04-08 00:49:29.323 | INFO     | watchfiles.main | 4 changes detected
+2026-04-08 00:49:36.116 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 01:05:17.828 | INFO     | watchfiles.main | 4 changes detected
+2026-04-08 01:05:22.165 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 01:08:54.334 | INFO     | app.request | [REQUEST] GET /api/v1/roles/list -> 200  127.9ms  ip=127.0.0.1
+2026-04-08 01:08:54.337 | INFO     | app.request | [REQUEST] GET /api/v1/depts/list -> 200  129.2ms  ip=127.0.0.1
+2026-04-08 01:08:54.339 | INFO     | app.request | [REQUEST] GET /api/v1/tenants/list -> 200  139.8ms  ip=127.0.0.1
+2026-04-08 01:08:54.341 | INFO     | app.request | [REQUEST] GET /api/v1/users/list -> 200  141.4ms  ip=127.0.0.1
+2026-04-08 01:28:04.568 | INFO     | app.request | [REQUEST] GET /api/v1/depts/list -> 200  150.1ms  ip=127.0.0.1
+2026-04-08 01:28:05.304 | INFO     | app.request | [REQUEST] GET /api/v1/depts/list -> 200  267.3ms  ip=127.0.0.1
+2026-04-08 01:28:05.343 | INFO     | app.request | [REQUEST] GET /api/v1/tenants/list -> 200  314.4ms  ip=127.0.0.1
+2026-04-08 01:28:05.368 | INFO     | app.request | [REQUEST] GET /api/v1/roles/list -> 200  336.8ms  ip=127.0.0.1
+2026-04-08 01:28:05.376 | INFO     | app.request | [REQUEST] GET /api/v1/users/list -> 200  344.1ms  ip=127.0.0.1
+2026-04-08 01:33:20.718 | INFO     | watchfiles.main | 4 changes detected
+2026-04-08 01:33:30.786 | INFO     | watchfiles.main | 155 changes detected
+2026-04-08 01:33:33.335 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 01:33:36.520 | INFO     | watchfiles.main | 1 change detected
+2026-04-08 01:33:37.098 | INFO     | app.request | [REQUEST] GET /api/v1/tenants/list -> 200  605.0ms  ip=127.0.0.1
+2026-04-08 01:33:37.127 | INFO     | app.request | [REQUEST] GET /api/v1/depts/list -> 200  627.6ms  ip=127.0.0.1
+2026-04-08 01:33:37.137 | INFO     | app.request | [REQUEST] GET /api/v1/users/list -> 200  638.8ms  ip=127.0.0.1
+2026-04-08 01:33:37.158 | INFO     | app.request | [REQUEST] GET /api/v1/roles/list -> 200  658.7ms  ip=127.0.0.1
+2026-04-08 01:33:43.805 | INFO     | app.request | [REQUEST] GET /api/v1/tenants/list -> 200  198.4ms  ip=127.0.0.1
+2026-04-08 01:33:43.815 | INFO     | app.request | [REQUEST] GET /api/v1/depts/list -> 200  202.2ms  ip=127.0.0.1
+2026-04-08 01:33:43.816 | INFO     | app.request | [REQUEST] GET /api/v1/users/list -> 200  206.5ms  ip=127.0.0.1
+2026-04-08 01:33:43.817 | INFO     | app.request | [REQUEST] GET /api/v1/roles/list -> 200  205.6ms  ip=127.0.0.1
+2026-04-08 01:33:45.284 | INFO     | app.request | [REQUEST] GET /api/v1/tenants/list -> 200  390.3ms  ip=127.0.0.1
+2026-04-08 01:33:45.286 | INFO     | app.request | [REQUEST] GET /api/v1/users/list -> 200  390.9ms  ip=127.0.0.1
+2026-04-08 01:33:45.288 | INFO     | app.request | [REQUEST] GET /api/v1/roles/list -> 200  390.4ms  ip=127.0.0.1
+2026-04-08 01:33:45.289 | INFO     | app.request | [REQUEST] GET /api/v1/depts/list -> 200  391.8ms  ip=127.0.0.1
+2026-04-08 01:33:55.514 | INFO     | app.request | [REQUEST] GET /api/v1/tenants/list -> 200  405.2ms  ip=127.0.0.1
+2026-04-08 01:33:57.447 | INFO     | app.request | [REQUEST] GET /api/v1/posts/list -> 200  234.8ms  ip=127.0.0.1
+2026-04-08 01:33:57.451 | INFO     | app.request | [REQUEST] GET /api/v1/depts/list -> 200  233.7ms  ip=127.0.0.1
+2026-04-08 01:33:57.723 | INFO     | app.request | [REQUEST] GET /api/v1/users/list -> 200  254.0ms  ip=127.0.0.1
+2026-04-08 01:34:02.366 | INFO     | app.request | [REQUEST] GET /api/v1/users/roles/2 -> 200  97.2ms  ip=127.0.0.1
+2026-04-08 01:34:02.388 | INFO     | app.request | [REQUEST] GET /api/v1/posts/list -> 200  116.1ms  ip=127.0.0.1
+2026-04-08 01:34:02.393 | INFO     | app.request | [REQUEST] GET /api/v1/depts/list -> 200  120.1ms  ip=127.0.0.1
+2026-04-08 01:34:02.408 | INFO     | app.request | [REQUEST] GET /api/v1/roles/list -> 200  132.1ms  ip=127.0.0.1
