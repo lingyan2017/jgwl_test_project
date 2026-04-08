@@ -34,6 +34,15 @@ const routes: RouteRecordRaw[] = [
           { path: 'permission', name: 'Permission', component: () => import('@/views/system/PermissionManage.vue'), meta: { title: '权限管理',  minUserType: 0 } },
         ],
       },
+      {
+        path: 'test',
+        name: 'Test',
+        meta: { title: '测试管理', minUserType: 1 },   // user_type <= 1 才能访问测试管理
+        children: [
+          { path: 'test-query-data', name: 'TestQueryData', component: () => import('@/views/system/TestQueryDataManage.vue'), meta: { title: '测试查询数据',  minUserType: 1 } },
+          { path: 'sys-config', name: 'SysConfig', component: () => import('@/views/system/SysConfigManage.vue'), meta: { title: '系统配置',  minUserType: 1 } },
+        ],
+      },
     ],
   },
   { path: '/:pathMatch(.*)*', redirect: '/' },

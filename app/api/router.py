@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1 import auth, dept, menu, permission, post, role, tenant, user
+from app.api.v1 import auth, dept, menu, permission, post, role, tenant, user, test_query_data, sys_config
 
 api_router = APIRouter()
 
@@ -12,3 +12,5 @@ api_router.include_router(post.router, prefix="/posts", tags=["岗位管理"])
 api_router.include_router(role.router, prefix="/roles", tags=["角色管理"])
 api_router.include_router(menu.router, prefix="/menus", tags=["菜单管理"])
 api_router.include_router(permission.router, prefix="/permissions", tags=["权限管理"])
+api_router.include_router(test_query_data.router, prefix="/test-query-data", tags=["测试查询数据"])
+api_router.include_router(sys_config.router, prefix="/sys-config", tags=["系统配置"])
