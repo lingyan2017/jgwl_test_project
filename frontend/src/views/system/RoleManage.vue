@@ -89,11 +89,13 @@ import { Search, Refresh, Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getRoleList, createRole, updateRole, deleteRole, getRole } from '@/api/role'
 import { getMenuTree } from '@/api/menu'
+import type { FormInstance, FormRules } from 'element-plus'
+import type { RoleInfo, MenuInfo } from '@/types'
 
-const loading=ref(false); const submitting=ref(false)
-const tableData=ref([]); const total=ref(0)
-const dialogVisible=ref(false); const editRow=ref(null); const formRef=ref(); const menuTreeRef=ref()
-const menuTree=ref([])
+const loading=ref<boolean>(false); const submitting=ref<boolean>(false)
+const tableData=ref<RoleInfo[]>([]); const total=ref<number>(0)
+const dialogVisible=ref<boolean>(false); const editRow=ref<RoleInfo|null>(null); const formRef=ref<FormInstance>(); const menuTreeRef=ref()
+const menuTree=ref<MenuInfo[]>([])
 
 const query=reactive({page:1,page_size:10,tenant_id:'',role_name:'',status:null})
 const form=reactive({tenant_id:'default',role_name:'',role_key:'',role_sort:0,data_scope:1,remark:'',status:1,menu_ids:[]})
@@ -106,7 +108,7 @@ async function loadData(){
 }
 function resetQuery(){Object.assign(query,{page:1,page_size:10,tenant_id:'',role_name:'',status:null});loadData()}
 
-async function openDialog(row=null){
+async function openDialog(row: RoleInfo | null = null): Promise<void> {
   editRow.value=row
   const tree=await getMenuTree();menuTree.value=tree.data
   if(row){
@@ -129,6 +131,6 @@ async function handleSubmit(){
     ElMessage.success(editRow.value?'更新成功':'创建成功');dialogVisible.value=false;loadData()
   }finally{submitting.value=false}
 }
-async function handleDelete(id){await ElMessageBox.confirm('确认删除？','警告',{type:'warning'});await deleteRole(id);ElMessage.success('删除成功');loadData()}
+async function handleDelete(id: number): Promise<void> {await ElMessageBox.confirm('确认删除？','警告',{type:'warning'});await deleteRole(id);ElMessage.success('删除成功');loadData()}
 onMounted(loadData)
 </script>

@@ -85,10 +85,12 @@ import { ref, reactive, onMounted } from 'vue'
 import { Search, Refresh, Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getPermissionList, createPermission, updatePermission, deletePermission } from '@/api/permission'
+import type { FormInstance, FormRules } from 'element-plus'
+import type { PermissionInfo } from '@/types'
 
-const loading=ref(false); const submitting=ref(false)
-const tableData=ref([]); const total=ref(0)
-const dialogVisible=ref(false); const editRow=ref(null); const formRef=ref()
+const loading=ref<boolean>(false); const submitting=ref<boolean>(false)
+const tableData=ref<PermissionInfo[]>([]); const total=ref<number>(0)
+const dialogVisible=ref<boolean>(false); const editRow=ref<PermissionInfo|null>(null); const formRef=ref<FormInstance>()
 
 const query=reactive({page:1,page_size:10,perm_name:'',perm_type:null,status:null})
 const form=reactive({perm_code:'',perm_name:'',perm_type:3,resource_url:'',method:'GET',status:1})
@@ -102,7 +104,7 @@ async function loadData(){
   }finally{loading.value=false}
 }
 function resetQuery(){Object.assign(query,{page:1,page_size:10,perm_name:'',perm_type:null,status:null});loadData()}
-function openDialog(row=null){
+function openDialog(row: PermissionInfo | null = null): void {
   editRow.value=row
   if(row) Object.assign(form,{perm_code:row.perm_code,perm_name:row.perm_name,perm_type:row.perm_type,resource_url:row.resource_url||'',method:row.method||'GET',status:row.status})
   else Object.assign(form,{perm_code:'',perm_name:'',perm_type:3,resource_url:'',method:'GET',status:1})
@@ -117,6 +119,6 @@ async function handleSubmit(){
     ElMessage.success(editRow.value?'更新成功':'创建成功');dialogVisible.value=false;loadData()
   }finally{submitting.value=false}
 }
-async function handleDelete(id){await ElMessageBox.confirm('确认删除？','警告',{type:'warning'});await deletePermission(id);ElMessage.success('删除成功');loadData()}
+async function handleDelete(id: number): Promise<void> {await ElMessageBox.confirm('确认删除？','警告',{type:'warning'});await deletePermission(id);ElMessage.success('删除成功');loadData()}
 onMounted(loadData)
 </script>

@@ -8,6 +8,8 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url))
 export default defineConfig({
   plugins: [vue()],
   resolve: {
+    // TypeScript files take priority over JavaScript files
+    extensions: ['.ts', '.tsx', '.mts', '.js', '.jsx', '.mjs', '.json', '.vue'],
     alias: {
       '@': resolve(__dirname, 'src'),
     },

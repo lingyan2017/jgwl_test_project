@@ -83,10 +83,12 @@ import { ref, reactive, onMounted } from 'vue'
 import { Search, Refresh, Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getMenuList, createMenu, updateMenu, deleteMenu } from '@/api/menu'
+import type { FormInstance, FormRules } from 'element-plus'
+import type { MenuInfo } from '@/types'
 
-const loading=ref(false); const submitting=ref(false)
-const tableData=ref([]); const total=ref(0)
-const dialogVisible=ref(false); const editRow=ref(null); const formRef=ref()
+const loading=ref<boolean>(false); const submitting=ref<boolean>(false)
+const tableData=ref<MenuInfo[]>([]); const total=ref<number>(0)
+const dialogVisible=ref<boolean>(false); const editRow=ref<MenuInfo|null>(null); const formRef=ref<FormInstance>()
 
 const query=reactive({page:1,page_size:10,menu_name:'',status:null})
 const form=reactive({parent_id:0,menu_name:'',menu_type:2,path:'',component:'',icon:'',order_num:0,perms:'',is_frame:0,visible:1,status:1})
@@ -98,7 +100,7 @@ async function loadData(){
   finally{loading.value=false}
 }
 function resetQuery(){Object.assign(query,{page:1,page_size:10,menu_name:'',status:null});loadData()}
-function openDialog(row=null){
+function openDialog(row: MenuInfo | null = null): void {
   editRow.value=row
   if(row) Object.assign(form,{parent_id:row.parent_id,menu_name:row.menu_name,menu_type:row.menu_type||2,path:row.path||'',component:row.component||'',icon:row.icon||'',order_num:row.order_num,perms:row.perms||'',is_frame:row.is_frame,visible:row.visible,status:row.status})
   else Object.assign(form,{parent_id:0,menu_name:'',menu_type:2,path:'',component:'',icon:'',order_num:0,perms:'',is_frame:0,visible:1,status:1})
@@ -114,6 +116,6 @@ async function handleSubmit(){
     ElMessage.success(editRow.value?'更新成功':'创建成功');dialogVisible.value=false;loadData()
   }finally{submitting.value=false}
 }
-async function handleDelete(id){await ElMessageBox.confirm('确认删除？','警告',{type:'warning'});await deleteMenu(id);ElMessage.success('删除成功');loadData()}
+async function handleDelete(id: number): Promise<void> {await ElMessageBox.confirm('确认删除？','警告',{type:'warning'});await deleteMenu(id);ElMessage.success('删除成功');loadData()}
 onMounted(loadData)
 </script>
