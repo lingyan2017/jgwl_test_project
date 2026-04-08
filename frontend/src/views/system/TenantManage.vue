@@ -59,36 +59,10 @@
     <!-- 新增/编辑对话框 -->
     <el-dialog v-model="dialogVisible" :title="editRow ? '编辑租户' : '新增租户'" width="520px">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
-
-        <!-- 新增时：下拉选择（从当前用户可访问的租户中筛选） -->
         <el-form-item label="租户ID" prop="tenant_id">
-          <template v-if="!editRow">
-            <el-select
-              v-model="form.tenant_id"
-              placeholder="请选择租户ID"
-              filterable
-              style="width: 100%"
-              v-loading="tenantIdLoading"
-              element-loading-text="加载中..."
-            >
-              <el-option
-                v-for="opt in tenantIdOptions"
-                :key="opt.value"
-                :label="opt.label"
-                :value="opt.value"
-              >
-                <span style="float:left">{{ opt.value }}</span>
-                <span style="float:right;color:#aaa;font-size:12px">{{ opt.tenantName }}</span>
-              </el-option>
-              <template v-if="tenantIdOptions.length === 0 && !tenantIdLoading" #empty>
-                <div style="text-align:center;padding:12px;color:#aaa">暂无可用租户</div>
-              </template>
-            </el-select>
-          </template>
-          <!-- 编辑时：禁用展示 -->
-          <el-input v-else :model-value="form.tenant_id" disabled />
+          <!-- 新增时可手动输入；编辑时禁用 -->
+          <el-input v-model="form.tenant_id" :disabled="!!editRow" placeholder="请输入租户ID" />
         </el-form-item>
-
         <el-form-item label="租户名称" prop="tenant_name">
           <el-input v-model="form.tenant_name" />
         </el-form-item>
@@ -121,10 +95,7 @@ import { Search, Refresh, Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { getTenantList, createTenant, updateTenant, deleteTenant } from '@/api/tenant'
-import { useAuthStore } from '@/stores/auth'
 import type { TenantInfo } from '@/types'
-
-const authStore = useAuthStore()
 
 const loading = ref<boolean>(false)
 const submitting = ref<boolean>(false)
@@ -134,48 +105,17 @@ const dialogVisible = ref<boolean>(false)
 const editRow = ref<TenantInfo | null>(null)
 const formRef = ref<FormInstance>()
 
-// 租户ID下拉选项
-interface TenantIdOption { value: string; label: string; tenantName: string }
-const tenantIdOptions = ref<TenantIdOption[]>([])
-const tenantIdLoading = ref<boolean>(false)
-
 interface TenantQuery { page: number; page_size: number; tenant_name: string; status: number | null }
 interface TenantForm {
-  tenant_id: string
-  tenant_name: string
-  contact_name: string
-  contact_phone: string
-  contact_email: string
-  status: number
+  tenant_id: string; tenant_name: string; contact_name: string
+  contact_phone: string; contact_email: string; status: number
 }
 
 const query = reactive<TenantQuery>({ page: 1, page_size: 10, tenant_name: '', status: null })
 const form = reactive<TenantForm>({ tenant_id: '', tenant_name: '', contact_name: '', contact_phone: '', contact_email: '', status: 1 })
 const rules: FormRules<TenantForm> = {
-  tenant_id: [{ required: true, message: '请选择租户ID', trigger: 'change' }],
+  tenant_id:   [{ required: true, message: '请输入租户ID',   trigger: 'blur' }],
   tenant_name: [{ required: true, message: '请输入租户名称', trigger: 'blur' }],
-}
-
-/** 加载当前用户有权访问的租户ID列表 */
-async function loadTenantIdOptions(): Promise<void> {
-  tenantIdLoading.value = true
-  try {
-    const res = await getTenantList({ page: 1, page_size: 200, status: 1 })
-    const currentUser = authStore.user
-
-    tenantIdOptions.value = res.data.items
-      // 超级管理员(user_type=0)可看到所有租户；其他用户只能看到自己所属的租户
-      .filter(t =>
-        currentUser?.user_type === 0 || t.tenant_id === currentUser?.tenant_id,
-      )
-      .map(t => ({
-        value: t.tenant_id,
-        label: `${t.tenant_id} - ${t.tenant_name}`,
-        tenantName: t.tenant_name,
-      }))
-  } finally {
-    tenantIdLoading.value = false
-  }
 }
 
 async function loadData(): Promise<void> {
@@ -194,22 +134,16 @@ function resetQuery(): void {
   loadData()
 }
 
-async function openDialog(row: TenantInfo | null = null): Promise<void> {
+function openDialog(row: TenantInfo | null = null): void {
   editRow.value = row
   if (row) {
-    // 编辑：直接填充数据
     Object.assign(form, {
-      tenant_id: row.tenant_id,
-      tenant_name: row.tenant_name,
-      contact_name: row.contact_name ?? '',
-      contact_phone: row.contact_phone ?? '',
-      contact_email: row.contact_email ?? '',
-      status: row.status,
+      tenant_id: row.tenant_id, tenant_name: row.tenant_name,
+      contact_name: row.contact_name ?? '', contact_phone: row.contact_phone ?? '',
+      contact_email: row.contact_email ?? '', status: row.status,
     })
   } else {
-    // 新增：清空表单并加载可选租户ID
     Object.assign(form, { tenant_id: '', tenant_name: '', contact_name: '', contact_phone: '', contact_email: '', status: 1 })
-    await loadTenantIdOptions()
   }
   dialogVisible.value = true
   formRef.value?.clearValidate()
@@ -221,11 +155,8 @@ async function handleSubmit(): Promise<void> {
   try {
     if (editRow.value) {
       await updateTenant(editRow.value.id, {
-        tenant_name: form.tenant_name,
-        contact_name: form.contact_name,
-        contact_phone: form.contact_phone,
-        contact_email: form.contact_email,
-        status: form.status,
+        tenant_name: form.tenant_name, contact_name: form.contact_name,
+        contact_phone: form.contact_phone, contact_email: form.contact_email, status: form.status,
       })
     } else {
       await createTenant({ ...form })
