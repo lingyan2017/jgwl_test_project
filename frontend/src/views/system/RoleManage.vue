@@ -49,7 +49,27 @@
 
     <el-dialog v-model="dialogVisible" :title="editRow?'编辑角色':'新增角色'" width="520px">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
-        <el-form-item label="租户ID"   prop="tenant_id"><el-input v-model="form.tenant_id" :disabled="!!editRow" /></el-form-item>
+        <el-form-item label="租户ID" prop="tenant_id">
+          <template v-if="!editRow">
+            <el-select
+              v-model="form.tenant_id"
+              placeholder="请选择租户ID"
+              filterable
+              style="width:100%"
+              v-loading="tenantIdLoading"
+              element-loading-text="加载中..."
+            >
+              <el-option v-for="opt in tenantIdOptions" :key="opt.value" :label="opt.label" :value="opt.value">
+                <span style="float:left">{{ opt.value }}</span>
+                <span style="float:right;color:#aaa;font-size:12px">{{ opt.tenantName }}</span>
+              </el-option>
+              <template v-if="tenantIdOptions.length === 0 && !tenantIdLoading" #empty>
+                <div style="text-align:center;padding:12px;color:#aaa">暂无可用租户</div>
+              </template>
+            </el-select>
+          </template>
+          <el-input v-else :model-value="form.tenant_id" disabled />
+        </el-form-item>
         <el-form-item label="角色名称" prop="role_name"><el-input v-model="form.role_name" /></el-form-item>
         <el-form-item label="角色标识" prop="role_key"><el-input v-model="form.role_key" /></el-form-item>
         <el-form-item label="排序"><el-input-number v-model="form.role_sort" :min="0" style="width:100%" /></el-form-item>
@@ -89,48 +109,82 @@ import { Search, Refresh, Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getRoleList, createRole, updateRole, deleteRole, getRole } from '@/api/role'
 import { getMenuTree } from '@/api/menu'
+import { getTenantList } from '@/api/tenant'
+import { useAuthStore } from '@/stores/auth'
 import type { FormInstance, FormRules } from 'element-plus'
 import type { RoleInfo, MenuInfo } from '@/types'
+
+const authStore = useAuthStore()
 
 const loading=ref<boolean>(false); const submitting=ref<boolean>(false)
 const tableData=ref<RoleInfo[]>([]); const total=ref<number>(0)
 const dialogVisible=ref<boolean>(false); const editRow=ref<RoleInfo|null>(null); const formRef=ref<FormInstance>(); const menuTreeRef=ref()
 const menuTree=ref<MenuInfo[]>([])
 
-const query=reactive({page:1,page_size:10,tenant_id:'',role_name:'',status:null})
-const form=reactive({tenant_id:'default',role_name:'',role_key:'',role_sort:0,data_scope:1,remark:'',status:1,menu_ids:[]})
-const rules={tenant_id:[{required:true,message:'必填',trigger:'blur'}],role_name:[{required:true,message:'必填',trigger:'blur'}],role_key:[{required:true,message:'必填',trigger:'blur'}]}
+interface TenantIdOption { value: string; label: string; tenantName: string }
+const tenantIdOptions = ref<TenantIdOption[]>([])
+const tenantIdLoading = ref<boolean>(false)
 
-async function loadData(){
-  loading.value=true
-  try{const p: Record<string,unknown>={...query};if(!p.tenant_id)delete p.tenant_id;if(!p.role_name)delete p.role_name;if(p.status===null)delete p.status;const res=await getRoleList(p);tableData.value=res.data.items;total.value=res.data.total}
-  finally{loading.value=false}
+const query=reactive({page:1,page_size:10,tenant_id:'',role_name:'',status:null})
+const form=reactive({tenant_id:'',role_name:'',role_key:'',role_sort:0,data_scope:1,remark:'',status:1,menu_ids:[] as number[]})
+const rules: FormRules = {
+  tenant_id: [{ required:true, message:'请选择租户ID', trigger:'change' }],
+  role_name: [{ required:true, message:'必填', trigger:'blur' }],
+  role_key:  [{ required:true, message:'必填', trigger:'blur' }],
 }
-function resetQuery(){Object.assign(query,{page:1,page_size:10,tenant_id:'',role_name:'',status:null});loadData()}
+
+async function loadTenantIdOptions(): Promise<void> {
+  tenantIdLoading.value = true
+  try {
+    const res = await getTenantList({ page: 1, page_size: 200, status: 1 })
+    const currentUser = authStore.user
+    tenantIdOptions.value = res.data.items
+      .filter(t => currentUser?.user_type === 0 || t.tenant_id === currentUser?.tenant_id)
+      .map(t => ({ value: t.tenant_id, label: `${t.tenant_id} - ${t.tenant_name}`, tenantName: t.tenant_name }))
+  } finally {
+    tenantIdLoading.value = false
+  }
+}
+
+async function loadData(): Promise<void> {
+  loading.value=true
+  try {
+    const p: Record<string,unknown>={...query}; if(!p.tenant_id) delete p.tenant_id; if(!p.role_name) delete p.role_name; if(p.status===null) delete p.status
+    const res=await getRoleList(p); tableData.value=res.data.items; total.value=res.data.total
+  } finally { loading.value=false }
+}
+
+function resetQuery(): void { Object.assign(query,{page:1,page_size:10,tenant_id:'',role_name:'',status:null}); loadData() }
 
 async function openDialog(row: RoleInfo | null = null): Promise<void> {
   editRow.value=row
-  const tree=await getMenuTree();menuTree.value=tree.data
-  if(row){
+  const tree=await getMenuTree(); menuTree.value=tree.data
+  if (row) {
     const detail=await getRole(row.id)
     Object.assign(form,{tenant_id:row.tenant_id,role_name:row.role_name,role_key:row.role_key,role_sort:row.role_sort,data_scope:row.data_scope,remark:row.remark||'',status:row.status,menu_ids:detail.data.menu_ids||[]})
   } else {
-    Object.assign(form,{tenant_id:'default',role_name:'',role_key:'',role_sort:0,data_scope:1,remark:'',status:1,menu_ids:[]})
+    Object.assign(form,{tenant_id:'',role_name:'',role_key:'',role_sort:0,data_scope:1,remark:'',status:1,menu_ids:[]})
+    await loadTenantIdOptions()
   }
-  dialogVisible.value=true;formRef.value?.clearValidate()
+  dialogVisible.value=true; formRef.value?.clearValidate()
 }
 
-async function handleSubmit(){
-  await formRef.value?.validate();submitting.value=true
-  try{
+async function handleSubmit(): Promise<void> {
+  await formRef.value?.validate(); submitting.value=true
+  try {
     const checkedIds=menuTreeRef.value?.getCheckedKeys(false)||[]
     const halfCheckedIds=menuTreeRef.value?.getHalfCheckedKeys()||[]
     const allMenuIds=[...new Set([...checkedIds,...halfCheckedIds])]
     if(editRow.value) await updateRole(editRow.value.id,{role_name:form.role_name,role_key:form.role_key,role_sort:form.role_sort,data_scope:form.data_scope,remark:form.remark,status:form.status,menu_ids:allMenuIds})
     else await createRole({...form,menu_ids:allMenuIds})
-    ElMessage.success(editRow.value?'更新成功':'创建成功');dialogVisible.value=false;loadData()
-  }finally{submitting.value=false}
+    ElMessage.success(editRow.value?'更新成功':'创建成功'); dialogVisible.value=false; loadData()
+  } finally { submitting.value=false }
 }
-async function handleDelete(id: number): Promise<void> {await ElMessageBox.confirm('确认删除？','警告',{type:'warning'});await deleteRole(id);ElMessage.success('删除成功');loadData()}
+
+async function handleDelete(id: number): Promise<void> {
+  await ElMessageBox.confirm('确认删除？','警告',{type:'warning'})
+  await deleteRole(id); ElMessage.success('删除成功'); loadData()
+}
+
 onMounted(loadData)
 </script>

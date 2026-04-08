@@ -54,7 +54,27 @@
 
     <el-dialog v-model="dialogVisible" :title="editRow?'编辑用户':'新增用户'" width="560px">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
-        <el-form-item label="租户ID"   prop="tenant_id"><el-input v-model="form.tenant_id" :disabled="!!editRow" /></el-form-item>
+        <el-form-item label="租户ID" prop="tenant_id">
+          <template v-if="!editRow">
+            <el-select
+              v-model="form.tenant_id"
+              placeholder="请选择租户ID"
+              filterable
+              style="width:100%"
+              v-loading="tenantIdLoading"
+              element-loading-text="加载中..."
+            >
+              <el-option v-for="opt in tenantIdOptions" :key="opt.value" :label="opt.label" :value="opt.value">
+                <span style="float:left">{{ opt.value }}</span>
+                <span style="float:right;color:#aaa;font-size:12px">{{ opt.tenantName }}</span>
+              </el-option>
+              <template v-if="tenantIdOptions.length === 0 && !tenantIdLoading" #empty>
+                <div style="text-align:center;padding:12px;color:#aaa">暂无可用租户</div>
+              </template>
+            </el-select>
+          </template>
+          <el-input v-else :model-value="form.tenant_id" disabled />
+        </el-form-item>
         <el-form-item label="用户名"   prop="username"><el-input v-model="form.username" :disabled="!!editRow" /></el-form-item>
         <el-form-item label="密码"     prop="password" v-if="!editRow"><el-input v-model="form.password" type="password" show-password /></el-form-item>
         <el-form-item label="姓名"><el-input v-model="form.real_name" /></el-form-item>
@@ -83,11 +103,19 @@ import { Search, Refresh, Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { getUserList, createUser, updateUser, deleteUser } from '@/api/user'
+import { getTenantList } from '@/api/tenant'
+import { useAuthStore } from '@/stores/auth'
 import type { UserInfo } from '@/types'
+
+const authStore = useAuthStore()
 
 const loading = ref<boolean>(false); const submitting = ref<boolean>(false)
 const tableData = ref<UserInfo[]>([]); const total = ref<number>(0)
 const dialogVisible = ref<boolean>(false); const editRow = ref<UserInfo | null>(null); const formRef = ref<FormInstance>()
+
+interface TenantIdOption { value: string; label: string; tenantName: string }
+const tenantIdOptions = ref<TenantIdOption[]>([])
+const tenantIdLoading = ref<boolean>(false)
 
 interface UserQuery { page: number; page_size: number; username: string; tenant_id: string; status: number | null }
 interface UserForm { tenant_id: string; username: string; password: string; real_name: string; email: string; phone: string; user_type: number; status: number }
@@ -95,9 +123,22 @@ interface UserForm { tenant_id: string; username: string; password: string; real
 const query = reactive<UserQuery>({ page:1, page_size:10, username:'', tenant_id:'', status:null })
 const form = reactive<UserForm>({ tenant_id:'', username:'', password:'', real_name:'', email:'', phone:'', user_type:2, status:1 })
 const rules: FormRules<UserForm> = {
-  tenant_id: [{ required:true, message:'请输入租户ID', trigger:'blur' }],
+  tenant_id: [{ required:true, message:'请选择租户ID', trigger:'change' }],
   username:  [{ required:true, message:'请输入用户名', trigger:'blur' }],
   password:  [{ required:true, message:'请输入密码',   trigger:'blur' }],
+}
+
+async function loadTenantIdOptions(): Promise<void> {
+  tenantIdLoading.value = true
+  try {
+    const res = await getTenantList({ page: 1, page_size: 200, status: 1 })
+    const currentUser = authStore.user
+    tenantIdOptions.value = res.data.items
+      .filter(t => currentUser?.user_type === 0 || t.tenant_id === currentUser?.tenant_id)
+      .map(t => ({ value: t.tenant_id, label: `${t.tenant_id} - ${t.tenant_name}`, tenantName: t.tenant_name }))
+  } finally {
+    tenantIdLoading.value = false
+  }
 }
 
 async function loadData(): Promise<void> {
@@ -114,10 +155,14 @@ async function loadData(): Promise<void> {
 
 function resetQuery(): void { Object.assign(query,{page:1,page_size:10,username:'',tenant_id:'',status:null}); loadData() }
 
-function openDialog(row: UserInfo | null = null): void {
+async function openDialog(row: UserInfo | null = null): Promise<void> {
   editRow.value = row
-  if (row) Object.assign(form, { tenant_id:row.tenant_id, username:row.username, password:'', real_name:row.real_name??'', email:row.email??'', phone:row.phone??'', user_type:row.user_type, status:row.status })
-  else Object.assign(form, { tenant_id:'default', username:'', password:'', real_name:'', email:'', phone:'', user_type:2, status:1 })
+  if (row) {
+    Object.assign(form, { tenant_id:row.tenant_id, username:row.username, password:'', real_name:row.real_name??'', email:row.email??'', phone:row.phone??'', user_type:row.user_type, status:row.status })
+  } else {
+    Object.assign(form, { tenant_id:'', username:'', password:'', real_name:'', email:'', phone:'', user_type:2, status:1 })
+    await loadTenantIdOptions()
+  }
   dialogVisible.value = true; formRef.value?.clearValidate()
 }
 
