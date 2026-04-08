@@ -37,8 +37,9 @@ async def list_users(
         if tenant_id:
             q = q.where(SysUser.tenant_id == tenant_id)
     elif current_user.user_type == 1:
-        # 租户管理员：只能看本租户用户
+        # 租户管理员：只能看本租户用户，且看不到超级管理员
         q = q.where(SysUser.tenant_id == current_user.tenant_id)
+        q = q.where(SysUser.user_type != 0)
     else:
         # 普通用户：只能看自己
         q = q.where(SysUser.id == current_user.id)
@@ -60,6 +61,9 @@ async def get_user(id: int, db: AsyncSession = Depends(get_db), current_user: Sy
     user = (await db.execute(select(SysUser).where(SysUser.id == id, SysUser.deleted == 0))).scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="用户不存在")
+    # 非超级管理员看不到超级管理员账号
+    if current_user.user_type != 0 and user.user_type == 0:
+        raise HTTPException(status_code=403, detail="权限不足")
     # 普通用户只能查看自己
     if current_user.user_type == 2 and user.id != current_user.id:
         raise HTTPException(status_code=403, detail="权限不足")
@@ -105,6 +109,9 @@ async def update_user(
     user = (await db.execute(select(SysUser).where(SysUser.id == id, SysUser.deleted == 0))).scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="用户不存在")
+    # 非超级管理员不能修改超级管理员账号
+    if current_user.user_type != 0 and user.user_type == 0:
+        raise HTTPException(status_code=403, detail="权限不足")
 
     # 普通用户只能修改自己，且不能修改角色/用户类型
     if current_user.user_type == 2:
@@ -143,6 +150,9 @@ async def delete_user(
     user = (await db.execute(select(SysUser).where(SysUser.id == id, SysUser.deleted == 0))).scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="用户不存在")
+    # 非超级管理员不能删除超级管理员账号
+    if current_user.user_type != 0 and user.user_type == 0:
+        raise HTTPException(status_code=403, detail="权限不足")
     _check_tenant(current_user, user.tenant_id)
     user.deleted = 1
     await db.commit()
