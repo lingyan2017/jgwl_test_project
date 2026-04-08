@@ -16,20 +16,25 @@
           active-text-color="#ffffff"
           router
         >
+          <!-- 所有用户可见 -->
           <el-menu-item index="/dashboard">
             <el-icon><HomeFilled /></el-icon>
             <template #title>首页</template>
           </el-menu-item>
 
-          <el-sub-menu index="/system">
+          <!-- 仅管理员(user_type <= 1)可见 -->
+          <el-sub-menu v-if="isAdmin" index="/system">
             <template #title>
               <el-icon><Setting /></el-icon>
               <span>系统管理</span>
             </template>
-            <el-menu-item index="/system/tenant">
+
+            <!-- 仅超级管理员可见 -->
+            <el-menu-item v-if="isSuperAdmin" index="/system/tenant">
               <el-icon><OfficeBuilding /></el-icon>
               <template #title>租户管理</template>
             </el-menu-item>
+
             <el-menu-item index="/system/user">
               <el-icon><User /></el-icon>
               <template #title>用户管理</template>
@@ -46,11 +51,13 @@
               <el-icon><UserFilled /></el-icon>
               <template #title>角色管理</template>
             </el-menu-item>
-            <el-menu-item index="/system/menu">
+
+            <!-- 仅超级管理员可见 -->
+            <el-menu-item v-if="isSuperAdmin" index="/system/menu">
               <el-icon><Menu /></el-icon>
               <template #title>菜单管理</template>
             </el-menu-item>
-            <el-menu-item index="/system/permission">
+            <el-menu-item v-if="isSuperAdmin" index="/system/permission">
               <el-icon><Lock /></el-icon>
               <template #title>权限管理</template>
             </el-menu-item>
@@ -72,6 +79,14 @@
           </el-breadcrumb>
         </div>
         <div class="header-right">
+          <el-tag
+            v-if="authStore.user"
+            :type="authStore.user.user_type === 0 ? 'danger' : authStore.user.user_type === 1 ? 'warning' : 'info'"
+            size="small"
+            style="margin-right:12px"
+          >
+            {{ userTypeLabel }}
+          </el-tag>
           <el-dropdown @command="handleCommand">
             <span class="user-info">
               <el-avatar size="small" :style="{ backgroundColor: '#1890ff' }">
@@ -107,6 +122,15 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const isCollapse = ref<boolean>(false)
+
+// 权限计算属性
+const isSuperAdmin = computed(() => authStore.user?.user_type === 0)
+const isAdmin = computed(() => (authStore.user?.user_type ?? 2) <= 1)
+
+const userTypeLabel = computed(() => {
+  const map: Record<number, string> = { 0: '超级管理员', 1: '租户管理员', 2: '普通用户' }
+  return map[authStore.user?.user_type ?? 2]
+})
 
 const activeMenu = computed(() => route.path)
 const currentTitle = computed(() => (route.meta?.title as string) ?? '')

@@ -40,3 +40,17 @@ async def get_current_user(
     if user is None:
         raise credentials_exception
     return user
+
+
+async def require_admin(current_user=Depends(get_current_user)):
+    """要求租户管理员(1)或超级管理员(0)，普通用户(2)被拒绝"""
+    if current_user.user_type == 2:
+        raise HTTPException(status_code=403, detail="权限不足，需要管理员权限")
+    return current_user
+
+
+async def require_super_admin(current_user=Depends(get_current_user)):
+    """要求超级管理员(0)"""
+    if current_user.user_type != 0:
+        raise HTTPException(status_code=403, detail="权限不足，需要超级管理员权限")
+    return current_user

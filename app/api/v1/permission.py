@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_super_admin
 from app.db.session import get_db
 from app.models.permission import SysPermission
 from app.schemas.common import success
@@ -43,7 +43,7 @@ async def get_permission(id: int, db: AsyncSession = Depends(get_db), _=Depends(
 
 
 @router.post("/create")
-async def create_permission(data: PermissionCreate, db: AsyncSession = Depends(get_db), _=Depends(get_current_user)):
+async def create_permission(data: PermissionCreate, db: AsyncSession = Depends(get_db), _=Depends(require_super_admin)):
     if (await db.execute(select(SysPermission).where(SysPermission.perm_code == data.perm_code))).scalar_one_or_none():
         raise HTTPException(status_code=400, detail="权限编码已存在")
     perm = SysPermission(**data.model_dump())
@@ -54,7 +54,7 @@ async def create_permission(data: PermissionCreate, db: AsyncSession = Depends(g
 
 
 @router.put("/update/{id}")
-async def update_permission(id: int, data: PermissionUpdate, db: AsyncSession = Depends(get_db), _=Depends(get_current_user)):
+async def update_permission(id: int, data: PermissionUpdate, db: AsyncSession = Depends(get_db), _=Depends(require_super_admin)):
     perm = (await db.execute(select(SysPermission).where(SysPermission.id == id, SysPermission.deleted == 0))).scalar_one_or_none()
     if not perm:
         raise HTTPException(status_code=404, detail="权限不存在")
@@ -66,7 +66,7 @@ async def update_permission(id: int, data: PermissionUpdate, db: AsyncSession = 
 
 
 @router.delete("/delete/{id}")
-async def delete_permission(id: int, db: AsyncSession = Depends(get_db), _=Depends(get_current_user)):
+async def delete_permission(id: int, db: AsyncSession = Depends(get_db), _=Depends(require_super_admin)):
     perm = (await db.execute(select(SysPermission).where(SysPermission.id == id, SysPermission.deleted == 0))).scalar_one_or_none()
     if not perm:
         raise HTTPException(status_code=404, detail="权限不存在")

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_admin
 from app.db.session import get_db
 from app.models.role import SysRole, SysRoleMenu
 from app.models.user import SysUser
@@ -56,7 +56,7 @@ async def get_role(id: int, db: AsyncSession = Depends(get_db), current_user: Sy
 
 
 @router.post("/create")
-async def create_role(data: RoleCreate, db: AsyncSession = Depends(get_db), current_user: SysUser = Depends(get_current_user)):
+async def create_role(data: RoleCreate, db: AsyncSession = Depends(get_db), current_user: SysUser = Depends(require_admin)):
     _check_tenant(current_user, data.tenant_id)
     menu_ids = data.menu_ids
     role = SysRole(**data.model_dump(exclude={"menu_ids"}))
@@ -70,7 +70,7 @@ async def create_role(data: RoleCreate, db: AsyncSession = Depends(get_db), curr
 
 
 @router.put("/update/{id}")
-async def update_role(id: int, data: RoleUpdate, db: AsyncSession = Depends(get_db), current_user: SysUser = Depends(get_current_user)):
+async def update_role(id: int, data: RoleUpdate, db: AsyncSession = Depends(get_db), current_user: SysUser = Depends(require_admin)):
     role = (await db.execute(select(SysRole).where(SysRole.id == id, SysRole.deleted == 0))).scalar_one_or_none()
     if not role:
         raise HTTPException(status_code=404, detail="角色不存在")
@@ -88,7 +88,7 @@ async def update_role(id: int, data: RoleUpdate, db: AsyncSession = Depends(get_
 
 
 @router.delete("/delete/{id}")
-async def delete_role(id: int, db: AsyncSession = Depends(get_db), current_user: SysUser = Depends(get_current_user)):
+async def delete_role(id: int, db: AsyncSession = Depends(get_db), current_user: SysUser = Depends(require_admin)):
     role = (await db.execute(select(SysRole).where(SysRole.id == id, SysRole.deleted == 0))).scalar_one_or_none()
     if not role:
         raise HTTPException(status_code=404, detail="角色不存在")

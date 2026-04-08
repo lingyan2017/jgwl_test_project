@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_super_admin
 from app.db.session import get_db
 from app.models.menu import SysMenu
 from app.schemas.common import success
@@ -56,7 +56,7 @@ async def get_menu(id: int, db: AsyncSession = Depends(get_db), _=Depends(get_cu
 
 
 @router.post("/create")
-async def create_menu(data: MenuCreate, db: AsyncSession = Depends(get_db), _=Depends(get_current_user)):
+async def create_menu(data: MenuCreate, db: AsyncSession = Depends(get_db), _=Depends(require_super_admin)):
     menu = SysMenu(**data.model_dump())
     db.add(menu)
     await db.commit()
@@ -65,7 +65,7 @@ async def create_menu(data: MenuCreate, db: AsyncSession = Depends(get_db), _=De
 
 
 @router.put("/update/{id}")
-async def update_menu(id: int, data: MenuUpdate, db: AsyncSession = Depends(get_db), _=Depends(get_current_user)):
+async def update_menu(id: int, data: MenuUpdate, db: AsyncSession = Depends(get_db), _=Depends(require_super_admin)):
     menu = (await db.execute(select(SysMenu).where(SysMenu.id == id, SysMenu.deleted == 0))).scalar_one_or_none()
     if not menu:
         raise HTTPException(status_code=404, detail="菜单不存在")
@@ -77,7 +77,7 @@ async def update_menu(id: int, data: MenuUpdate, db: AsyncSession = Depends(get_
 
 
 @router.delete("/delete/{id}")
-async def delete_menu(id: int, db: AsyncSession = Depends(get_db), _=Depends(get_current_user)):
+async def delete_menu(id: int, db: AsyncSession = Depends(get_db), _=Depends(require_super_admin)):
     menu = (await db.execute(select(SysMenu).where(SysMenu.id == id, SysMenu.deleted == 0))).scalar_one_or_none()
     if not menu:
         raise HTTPException(status_code=404, detail="菜单不存在")

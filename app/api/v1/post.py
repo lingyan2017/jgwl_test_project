@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_admin
 from app.db.session import get_db
 from app.models.post import SysPost
 from app.models.user import SysUser
@@ -53,7 +53,7 @@ async def get_post(id: int, db: AsyncSession = Depends(get_db), current_user: Sy
 
 
 @router.post("/create")
-async def create_post(data: PostCreate, db: AsyncSession = Depends(get_db), current_user: SysUser = Depends(get_current_user)):
+async def create_post(data: PostCreate, db: AsyncSession = Depends(get_db), current_user: SysUser = Depends(require_admin)):
     _check_tenant(current_user, data.tenant_id)
     post = SysPost(**data.model_dump())
     db.add(post)
@@ -63,7 +63,7 @@ async def create_post(data: PostCreate, db: AsyncSession = Depends(get_db), curr
 
 
 @router.put("/update/{id}")
-async def update_post(id: int, data: PostUpdate, db: AsyncSession = Depends(get_db), current_user: SysUser = Depends(get_current_user)):
+async def update_post(id: int, data: PostUpdate, db: AsyncSession = Depends(get_db), current_user: SysUser = Depends(require_admin)):
     post = (await db.execute(select(SysPost).where(SysPost.id == id, SysPost.deleted == 0))).scalar_one_or_none()
     if not post:
         raise HTTPException(status_code=404, detail="岗位不存在")
@@ -76,7 +76,7 @@ async def update_post(id: int, data: PostUpdate, db: AsyncSession = Depends(get_
 
 
 @router.delete("/delete/{id}")
-async def delete_post(id: int, db: AsyncSession = Depends(get_db), current_user: SysUser = Depends(get_current_user)):
+async def delete_post(id: int, db: AsyncSession = Depends(get_db), current_user: SysUser = Depends(require_admin)):
     post = (await db.execute(select(SysPost).where(SysPost.id == id, SysPost.deleted == 0))).scalar_one_or_none()
     if not post:
         raise HTTPException(status_code=404, detail="岗位不存在")

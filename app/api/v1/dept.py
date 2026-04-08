@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_admin
 from app.db.session import get_db
 from app.models.dept import SysDept
 from app.models.user import SysUser
@@ -79,7 +79,7 @@ async def get_dept(id: int, db: AsyncSession = Depends(get_db), current_user: Sy
 
 
 @router.post("/create")
-async def create_dept(data: DeptCreate, db: AsyncSession = Depends(get_db), current_user: SysUser = Depends(get_current_user)):
+async def create_dept(data: DeptCreate, db: AsyncSession = Depends(get_db), current_user: SysUser = Depends(require_admin)):
     _check_tenant(current_user, data.tenant_id)
     dept = SysDept(**data.model_dump())
     db.add(dept)
@@ -89,7 +89,7 @@ async def create_dept(data: DeptCreate, db: AsyncSession = Depends(get_db), curr
 
 
 @router.put("/update/{id}")
-async def update_dept(id: int, data: DeptUpdate, db: AsyncSession = Depends(get_db), current_user: SysUser = Depends(get_current_user)):
+async def update_dept(id: int, data: DeptUpdate, db: AsyncSession = Depends(get_db), current_user: SysUser = Depends(require_admin)):
     dept = (await db.execute(select(SysDept).where(SysDept.id == id, SysDept.deleted == 0))).scalar_one_or_none()
     if not dept:
         raise HTTPException(status_code=404, detail="部门不存在")
@@ -102,7 +102,7 @@ async def update_dept(id: int, data: DeptUpdate, db: AsyncSession = Depends(get_
 
 
 @router.delete("/delete/{id}")
-async def delete_dept(id: int, db: AsyncSession = Depends(get_db), current_user: SysUser = Depends(get_current_user)):
+async def delete_dept(id: int, db: AsyncSession = Depends(get_db), current_user: SysUser = Depends(require_admin)):
     dept = (await db.execute(select(SysDept).where(SysDept.id == id, SysDept.deleted == 0))).scalar_one_or_none()
     if not dept:
         raise HTTPException(status_code=404, detail="部门不存在")
