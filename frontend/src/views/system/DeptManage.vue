@@ -65,33 +65,38 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { Search, Refresh, Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import type { FormInstance, FormRules } from 'element-plus'
 import { getDeptList, createDept, updateDept, deleteDept } from '@/api/dept'
+import type { DeptInfo } from '@/types'
 
-const loading=ref(false); const submitting=ref(false)
-const tableData=ref([]); const total=ref(0)
-const dialogVisible=ref(false); const editRow=ref(null); const formRef=ref()
+const loading=ref<boolean>(false); const submitting=ref<boolean>(false)
+const tableData=ref<DeptInfo[]>([]); const total=ref<number>(0)
+const dialogVisible=ref<boolean>(false); const editRow=ref<DeptInfo|null>(null); const formRef=ref<FormInstance>()
 
-const query=reactive({page:1,page_size:10,tenant_id:'',dept_name:'',status:null})
-const form=reactive({tenant_id:'default',parent_id:0,dept_name:'',order_num:0,leader:'',phone:'',email:'',status:1})
-const rules={tenant_id:[{required:true,message:'请输入租户ID',trigger:'blur'}],dept_name:[{required:true,message:'请输入部门名称',trigger:'blur'}]}
+interface DeptQuery { page: number; page_size: number; tenant_id: string; dept_name: string; status: number | null }
+interface DeptForm { tenant_id: string; parent_id: number; dept_name: string; order_num: number; leader: string; phone: string; email: string; status: number }
 
-async function loadData(){
+const query=reactive<DeptQuery>({page:1,page_size:10,tenant_id:'',dept_name:'',status:null})
+const form=reactive<DeptForm>({tenant_id:'default',parent_id:0,dept_name:'',order_num:0,leader:'',phone:'',email:'',status:1})
+const rules: FormRules<DeptForm> ={tenant_id:[{required:true,message:'请输入租户ID',trigger:'blur'}],dept_name:[{required:true,message:'请输入部门名称',trigger:'blur'}]}
+
+async function loadData(): Promise<void> {
   loading.value=true
   try{
-    const p={...query}; if(!p.tenant_id) delete p.tenant_id; if(!p.dept_name) delete p.dept_name; if(p.status===null) delete p.status
+    const p: Record<string,unknown>={...query}; if(!p.tenant_id) delete p.tenant_id; if(!p.dept_name) delete p.dept_name; if(p.status===null) delete p.status
     const res=await getDeptList(p); tableData.value=res.data.items; total.value=res.data.total
   }finally{loading.value=false}
 }
 
-function resetQuery(){Object.assign(query,{page:1,page_size:10,tenant_id:'',dept_name:'',status:null});loadData()}
+function resetQuery(): void {Object.assign(query,{page:1,page_size:10,tenant_id:'',dept_name:'',status:null});loadData()}
 
-function openDialog(row=null){
+function openDialog(row: DeptInfo | null = null): void {
   editRow.value=row
-  if(row) Object.assign(form,{tenant_id:row.tenant_id,parent_id:row.parent_id,dept_name:row.dept_name,order_num:row.order_num,leader:row.leader||'',phone:row.phone||'',email:row.email||'',status:row.status})
+  if(row) Object.assign(form,{tenant_id:row.tenant_id,parent_id:row.parent_id,dept_name:row.dept_name,order_num:row.order_num,leader:row.leader??'',phone:row.phone??'',email:row.email??'',status:row.status})
   else Object.assign(form,{tenant_id:'default',parent_id:0,dept_name:'',order_num:0,leader:'',phone:'',email:'',status:1})
   dialogVisible.value=true; formRef.value?.clearValidate()
 }
@@ -105,7 +110,7 @@ async function handleSubmit(){
   }finally{submitting.value=false}
 }
 
-async function handleDelete(id){
+async function handleDelete(id: number): Promise<void> {
   await ElMessageBox.confirm('确认删除该部门？','警告',{type:'warning'})
   await deleteDept(id); ElMessage.success('删除成功'); loadData()
 }

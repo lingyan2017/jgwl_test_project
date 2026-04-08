@@ -51,25 +51,27 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { ElMessage } from 'element-plus'
+import type { FormInstance, FormRules } from 'element-plus'
 
 const router = useRouter()
 const authStore = useAuthStore()
-const formRef = ref()
-const loading = ref(false)
+const formRef = ref<FormInstance>()
+const loading = ref<boolean>(false)
 
-const form = reactive({ tenant_id: 'default', username: 'admin', password: '' })
+interface LoginForm { tenant_id: string; username: string; password: string }
+const form = reactive<LoginForm>({ tenant_id: 'default', username: 'admin', password: '' })
 
-const rules = {
+const rules: FormRules<LoginForm> = {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
 }
 
-async function handleLogin() {
+async function handleLogin(): Promise<void> {
   await formRef.value?.validate()
   loading.value = true
   try {

@@ -97,7 +97,7 @@
   </el-container>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -106,16 +106,16 @@ import { ElMessageBox } from 'element-plus'
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
-const isCollapse = ref(false)
+const isCollapse = ref<boolean>(false)
 
 const activeMenu = computed(() => route.path)
-const currentTitle = computed(() => route.meta?.title || '')
+const currentTitle = computed(() => (route.meta?.title as string) ?? '')
 const userInitial = computed(() => {
-  const name = authStore.user?.real_name || authStore.user?.username || 'U'
+  const name = authStore.user?.real_name ?? authStore.user?.username ?? 'U'
   return name.charAt(0).toUpperCase()
 })
 
-async function handleCommand(cmd) {
+async function handleCommand(cmd: string): Promise<void> {
   if (cmd === 'logout') {
     await ElMessageBox.confirm('确认退出登录？', '提示', { type: 'warning' })
     authStore.logout()

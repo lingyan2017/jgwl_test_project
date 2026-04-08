@@ -62,29 +62,34 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { Search, Refresh, Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import type { FormInstance, FormRules } from 'element-plus'
 import { getPostList, createPost, updatePost, deletePost } from '@/api/post'
+import type { PostInfo } from '@/types'
 
-const loading=ref(false); const submitting=ref(false)
-const tableData=ref([]); const total=ref(0)
-const dialogVisible=ref(false); const editRow=ref(null); const formRef=ref()
+const loading=ref<boolean>(false); const submitting=ref<boolean>(false)
+const tableData=ref<PostInfo[]>([]); const total=ref<number>(0)
+const dialogVisible=ref<boolean>(false); const editRow=ref<PostInfo|null>(null); const formRef=ref<FormInstance>()
 
-const query=reactive({page:1,page_size:10,tenant_id:'',post_name:'',status:null})
-const form=reactive({tenant_id:'default',post_code:'',post_name:'',post_sort:0,remark:'',status:1})
-const rules={tenant_id:[{required:true,message:'必填',trigger:'blur'}],post_code:[{required:true,message:'必填',trigger:'blur'}],post_name:[{required:true,message:'必填',trigger:'blur'}]}
+interface PostQuery { page: number; page_size: number; tenant_id: string; post_name: string; status: number | null }
+interface PostForm { tenant_id: string; post_code: string; post_name: string; post_sort: number; remark: string; status: number }
 
-async function loadData(){
+const query=reactive<PostQuery>({page:1,page_size:10,tenant_id:'',post_name:'',status:null})
+const form=reactive<PostForm>({tenant_id:'default',post_code:'',post_name:'',post_sort:0,remark:'',status:1})
+const rules: FormRules<PostForm> ={tenant_id:[{required:true,message:'必填',trigger:'blur'}],post_code:[{required:true,message:'必填',trigger:'blur'}],post_name:[{required:true,message:'必填',trigger:'blur'}]}
+
+async function loadData(): Promise<void> {
   loading.value=true
-  try{const p={...query};if(!p.tenant_id) delete p.tenant_id;if(!p.post_name) delete p.post_name;if(p.status===null) delete p.status;const res=await getPostList(p);tableData.value=res.data.items;total.value=res.data.total}
+  try{const p: Record<string,unknown>={...query};if(!p.tenant_id) delete p.tenant_id;if(!p.post_name) delete p.post_name;if(p.status===null) delete p.status;const res=await getPostList(p);tableData.value=res.data.items;total.value=res.data.total}
   finally{loading.value=false}
 }
-function resetQuery(){Object.assign(query,{page:1,page_size:10,tenant_id:'',post_name:'',status:null});loadData()}
-function openDialog(row=null){
+function resetQuery(): void {Object.assign(query,{page:1,page_size:10,tenant_id:'',post_name:'',status:null});loadData()}
+function openDialog(row: PostInfo | null = null): void {
   editRow.value=row
-  if(row) Object.assign(form,{tenant_id:row.tenant_id,post_code:row.post_code,post_name:row.post_name,post_sort:row.post_sort,remark:row.remark||'',status:row.status})
+  if(row) Object.assign(form,{tenant_id:row.tenant_id,post_code:row.post_code,post_name:row.post_name,post_sort:row.post_sort,remark:row.remark??'',status:row.status})
   else Object.assign(form,{tenant_id:'default',post_code:'',post_name:'',post_sort:0,remark:'',status:1})
   dialogVisible.value=true;formRef.value?.clearValidate()
 }
@@ -96,6 +101,6 @@ async function handleSubmit(){
     ElMessage.success(editRow.value?'更新成功':'创建成功');dialogVisible.value=false;loadData()
   }finally{submitting.value=false}
 }
-async function handleDelete(id){await ElMessageBox.confirm('确认删除？','警告',{type:'warning'});await deletePost(id);ElMessage.success('删除成功');loadData()}
+async function handleDelete(id: number): Promise<void> {await ElMessageBox.confirm('确认删除？','警告',{type:'warning'});await deletePost(id);ElMessage.success('删除成功');loadData()}
 onMounted(loadData)
 </script>

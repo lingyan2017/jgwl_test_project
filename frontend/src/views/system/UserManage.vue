@@ -77,28 +77,33 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { Search, Refresh, Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import type { FormInstance, FormRules } from 'element-plus'
 import { getUserList, createUser, updateUser, deleteUser } from '@/api/user'
+import type { UserInfo } from '@/types'
 
-const loading = ref(false); const submitting = ref(false)
-const tableData = ref([]); const total = ref(0)
-const dialogVisible = ref(false); const editRow = ref(null); const formRef = ref()
+const loading = ref<boolean>(false); const submitting = ref<boolean>(false)
+const tableData = ref<UserInfo[]>([]); const total = ref<number>(0)
+const dialogVisible = ref<boolean>(false); const editRow = ref<UserInfo | null>(null); const formRef = ref<FormInstance>()
 
-const query = reactive({ page:1, page_size:10, username:'', tenant_id:'', status:null })
-const form = reactive({ tenant_id:'', username:'', password:'', real_name:'', email:'', phone:'', user_type:2, status:1 })
-const rules = {
+interface UserQuery { page: number; page_size: number; username: string; tenant_id: string; status: number | null }
+interface UserForm { tenant_id: string; username: string; password: string; real_name: string; email: string; phone: string; user_type: number; status: number }
+
+const query = reactive<UserQuery>({ page:1, page_size:10, username:'', tenant_id:'', status:null })
+const form = reactive<UserForm>({ tenant_id:'', username:'', password:'', real_name:'', email:'', phone:'', user_type:2, status:1 })
+const rules: FormRules<UserForm> = {
   tenant_id: [{ required:true, message:'请输入租户ID', trigger:'blur' }],
   username:  [{ required:true, message:'请输入用户名', trigger:'blur' }],
   password:  [{ required:true, message:'请输入密码',   trigger:'blur' }],
 }
 
-async function loadData() {
+async function loadData(): Promise<void> {
   loading.value = true
   try {
-    const params = { ...query }
+    const params: Record<string, unknown> = { ...query }
     if (!params.username) delete params.username
     if (!params.tenant_id) delete params.tenant_id
     if (params.status === null) delete params.status
@@ -107,11 +112,11 @@ async function loadData() {
   } finally { loading.value = false }
 }
 
-function resetQuery() { Object.assign(query,{page:1,page_size:10,username:'',tenant_id:'',status:null}); loadData() }
+function resetQuery(): void { Object.assign(query,{page:1,page_size:10,username:'',tenant_id:'',status:null}); loadData() }
 
-function openDialog(row=null) {
+function openDialog(row: UserInfo | null = null): void {
   editRow.value = row
-  if (row) Object.assign(form, { tenant_id:row.tenant_id, username:row.username, password:'', real_name:row.real_name||'', email:row.email||'', phone:row.phone||'', user_type:row.user_type, status:row.status })
+  if (row) Object.assign(form, { tenant_id:row.tenant_id, username:row.username, password:'', real_name:row.real_name??'', email:row.email??'', phone:row.phone??'', user_type:row.user_type, status:row.status })
   else Object.assign(form, { tenant_id:'default', username:'', password:'', real_name:'', email:'', phone:'', user_type:2, status:1 })
   dialogVisible.value = true; formRef.value?.clearValidate()
 }
@@ -126,7 +131,7 @@ async function handleSubmit() {
   } finally { submitting.value=false }
 }
 
-async function handleDelete(id) {
+async function handleDelete(id: number): Promise<void> {
   await ElMessageBox.confirm('确认删除该用户？','警告',{type:'warning'})
   await deleteUser(id); ElMessage.success('删除成功'); loadData()
 }

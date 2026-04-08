@@ -34,7 +34,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { getTenantList } from '@/api/tenant'
@@ -43,9 +43,10 @@ import { getRoleList } from '@/api/role'
 import { getDeptList } from '@/api/dept'
 
 const authStore = useAuthStore()
-const userTypeMap = { 0: '超级管理员', 1: '租户管理员', 2: '普通用户' }
+const userTypeMap: Record<number, string> = { 0: '超级管理员', 1: '租户管理员', 2: '普通用户' }
 
-const statCards = ref([
+interface StatCard { title: string; value: number; icon: string; color: string }
+const statCards = ref<StatCard[]>([
   { title: '租户数量', value: 0, icon: 'OfficeBuilding', color: '#1890ff' },
   { title: '用户数量', value: 0, icon: 'User',           color: '#52c41a' },
   { title: '角色数量', value: 0, icon: 'UserFilled',     color: '#fa8c16' },
