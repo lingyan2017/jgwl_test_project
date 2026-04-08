@@ -6,7 +6,7 @@ from sqlalchemy import select
 from app.db.session import AsyncSessionLocal
 from app.models.menu import SysMenu
 from app.models.role import SysRoleMenu
-from app.models.permission import SysPermission, SysRolePermission
+from app.models.permission import SysPermission
 
 async def create_missing_menu():
     async with AsyncSessionLocal() as db:
