@@ -22,22 +22,46 @@
           <el-button type="primary" :icon="Plus" @click="openDialog()">新增菜单</el-button>
         </div>
       </template>
-      <el-table :data="tableData" border stripe v-loading="loading">
-        <el-table-column prop="id"        label="ID"     width="70" />
-        <el-table-column prop="menu_name" label="菜单名称" width="160" />
-        <el-table-column prop="menu_type" label="类型"   width="80">
-          <template #default="{row}"><el-tag size="small" :type="row.menu_type===1?'info':row.menu_type===2?'primary':'warning'">{{['','目录','菜单','按钮'][row.menu_type]||'-'}}</el-tag></template>
+      
+      <!-- 树形菜单结构 -->
+      <el-table 
+        :data="treeData" 
+        border 
+        stripe 
+        v-loading="loading"
+        row-key="id"
+        :tree-props="{children: 'children', hasChildren: 'hasChildren'}"
+      >
+        <el-table-column prop="menu_name" label="菜单名称" width="200">
+          <template #default="{row}">
+            <span>{{ row.menu_name }}</span>
+            <el-tag 
+              size="small" 
+              :type="row.menu_type===1?'info':row.menu_type===2?'primary':'warning'" 
+              style="margin-left: 8px;"
+            >
+              {{['','目录','菜单','按钮'][row.menu_type]||'-'}}
+            </el-tag>
+          </template>
         </el-table-column>
-        <el-table-column prop="path"      label="路由路径" />
-        <el-table-column prop="component" label="组件路径" />
-        <el-table-column prop="icon"      label="图标"   width="100" />
-        <el-table-column prop="order_num" label="排序"   width="70" />
-        <el-table-column prop="perms"     label="权限标识" />
-        <el-table-column prop="visible"   label="显示"   width="70">
-          <template #default="{row}"><el-tag size="small" :type="row.visible===1?'success':'info'">{{row.visible===1?'显示':'隐藏'}}</el-tag></template>
+        <el-table-column prop="path"      label="路由路径" width="180" />
+        <el-table-column prop="component" label="组件路径" width="200" />
+        <el-table-column prop="icon"      label="图标" width="100" />
+        <el-table-column prop="order_num" label="排序" width="70" />
+        <el-table-column prop="perms"     label="权限标识" width="150" />
+        <el-table-column prop="visible"   label="显示" width="70">
+          <template #default="{row}">
+            <el-tag size="small" :type="row.visible===1?'success':'info'">
+              {{row.visible===1?'显示':'隐藏'}}
+            </el-tag>
+          </template>
         </el-table-column>
-        <el-table-column prop="status"    label="状态"   width="70">
-          <template #default="{row}"><el-tag size="small" :type="row.status===1?'success':'danger'">{{row.status===1?'启用':'禁用'}}</el-tag></template>
+        <el-table-column prop="status"    label="状态" width="70">
+          <template #default="{row}">
+            <el-tag size="small" :type="row.status===1?'success':'danger'">
+              {{row.status===1?'启用':'禁用'}}
+            </el-tag>
+          </template>
         </el-table-column>
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{row}">
@@ -46,7 +70,6 @@
           </template>
         </el-table-column>
       </el-table>
-      <el-pagination v-model:current-page="query.page" v-model:page-size="query.page_size" :total="total" :page-sizes="[10,20,50]" layout="total,sizes,prev,pager,next" style="margin-top:16px;justify-content:flex-end" @change="loadData" />
     </el-card>
 
     <el-dialog v-model="dialogVisible" :title="editRow?'编辑菜单':'新增菜单'" width="560px">
@@ -87,7 +110,7 @@ import type { FormInstance, FormRules } from 'element-plus'
 import type { MenuInfo } from '@/types'
 
 const loading=ref<boolean>(false); const submitting=ref<boolean>(false)
-const tableData=ref<MenuInfo[]>([]); const total=ref<number>(0)
+const tableData=ref<MenuInfo[]>([]); const treeData=ref<MenuInfo[]>([]); const total=ref<number>(0)
 const dialogVisible=ref<boolean>(false); const editRow=ref<MenuInfo|null>(null); const formRef=ref<FormInstance>()
 
 const query=reactive({page:1,page_size:10,menu_name:'',status:null})
@@ -96,10 +119,65 @@ const rules={menu_name:[{required:true,message:'必填',trigger:'blur'}]}
 
 async function loadData(){
   loading.value=true
-  try{const p: Record<string,unknown>={...query};if(!p.menu_name)delete p.menu_name;if(p.status===null)delete p.status;const res=await getMenuList(p);tableData.value=res.data.items;total.value=res.data.total}
+  try{
+    // 获取所有菜单数据（不分页）
+    const p: Record<string,unknown> = { page: 1, page_size: 9999 }; // 获取所有数据
+    if(query.menu_name) p.menu_name = query.menu_name;
+    if(query.status !== null) p.status = query.status;
+    
+    const res = await getMenuList(p);
+    tableData.value = res.data.items;
+    // 构建树形结构
+    treeData.value = buildTree(res.data.items);
+  }
   finally{loading.value=false}
 }
-function resetQuery(){Object.assign(query,{page:1,page_size:10,menu_name:'',status:null});loadData()}
+
+// 构建树形结构
+function buildTree(data: MenuInfo[]): MenuInfo[] {
+  // 先按 parent_id 分组
+  const map: Record<number, MenuInfo> = {};
+  const roots: MenuInfo[] = [];
+
+  // 创建映射
+  data.forEach(item => {
+    map[item.id] = { ...item, children: [] };
+  });
+
+  // 构建树结构
+  data.forEach(item => {
+    const node = map[item.id];
+    if (item.parent_id === 0) {
+      // 根节点
+      roots.push(node);
+    } else {
+      // 查找父节点并添加为子节点
+      const parent = map[item.parent_id];
+      if (parent) {
+        if (!parent.children) parent.children = [];
+        parent.children.push(node);
+      }
+    }
+  });
+
+  // 对每个节点的子节点按 order_num 排序
+  const sortChildren = (nodes: MenuInfo[]) => {
+    nodes.sort((a, b) => (a.order_num || 0) - (b.order_num || 0));
+    nodes.forEach(node => {
+      if (node.children && node.children.length > 0) {
+        sortChildren(node.children);
+      }
+    });
+  };
+
+  sortChildren(roots);
+  
+  return roots;
+}
+function resetQuery(){
+  Object.assign(query, {page:1, page_size:10, menu_name:'', status:null});
+  loadData()
+}
 function openDialog(row: MenuInfo | null = null): void {
   editRow.value=row
   if(row) Object.assign(form,{parent_id:row.parent_id,menu_name:row.menu_name,menu_type:row.menu_type||2,path:row.path||'',component:row.component||'',icon:row.icon||'',order_num:row.order_num,perms:row.perms||'',is_frame:row.is_frame,visible:row.visible,status:row.status})
