@@ -27,7 +27,7 @@ class TestQueryDataOut(BaseModel):
     url: str
     language: str
     sys_code: str
-    params: Dict[str, Any]
+    params: str | Dict[str, Any]  # 支持字符串或字典类型
     deleted: int
     create_time: Optional[datetime] = None
     update_time: Optional[datetime] = None

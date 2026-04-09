@@ -3,7 +3,7 @@ import request from '@/utils/request'
 // 获取测试查询数据列表
 export const getTestQueryDataList = (params: any) => {
   return request({
-    url: '/api/v1/test-query-data/list',
+    url: '/test-query-data/list',
     method: 'get',
     params
   });
@@ -12,7 +12,7 @@ export const getTestQueryDataList = (params: any) => {
 // 获取单个测试查询数据
 export const getTestQueryData = (id: number) => {
   return request({
-    url: `/api/v1/test-query-data/get/${id}`,
+    url: `/test-query-data/get/${id}`,
     method: 'get'
   });
 };
@@ -20,7 +20,7 @@ export const getTestQueryData = (id: number) => {
 // 创建测试查询数据
 export const createTestQueryData = (data: any) => {
   return request({
-    url: '/api/v1/test-query-data/create',
+    url: '/test-query-data/create',
     method: 'post',
     data
   });
@@ -29,7 +29,7 @@ export const createTestQueryData = (data: any) => {
 // 更新测试查询数据
 export const updateTestQueryData = (id: number, data: any) => {
   return request({
-    url: `/api/v1/test-query-data/update/${id}`,
+    url: `/test-query-data/update/${id}`,
     method: 'put',
     data
   });
@@ -38,7 +38,7 @@ export const updateTestQueryData = (id: number, data: any) => {
 // 删除测试查询数据
 export const deleteTestQueryData = (id: number) => {
   return request({
-    url: `/api/v1/test-query-data/delete/${id}`,
+    url: `/test-query-data/delete/${id}`,
     method: 'delete'
   });
 };
@@ -46,7 +46,7 @@ export const deleteTestQueryData = (id: number) => {
 // 调用测试查询数据
 export const callTestQueryData = (data: any) => {
   return request({
-    url: '/api/v1/test-query-data/call',
+    url: '/test-query-data/call',
     method: 'post',
     data
   });
@@ -55,7 +55,7 @@ export const callTestQueryData = (data: any) => {
 // 获取测试查询数据日志
 export const getTestQueryDataLogs = (test_query_data_id: number, params: any) => {
   return request({
-    url: `/api/v1/test-query-data/logs/${test_query_data_id}`,
+    url: `/test-query-data/logs/${test_query_data_id}`,
     method: 'get',
     params
   });

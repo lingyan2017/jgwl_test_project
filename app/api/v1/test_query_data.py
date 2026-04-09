@@ -52,7 +52,12 @@ async def list_test_query_data(
     result = []
     for item in items:
         item_dict = TestQueryDataOut.model_validate(item).model_dump()
-        item_dict["params"] = json.loads(item.params)
+        # 如果params是字符串，转换为字典
+        if isinstance(item_dict["params"], str):
+            try:
+                item_dict["params"] = json.loads(item_dict["params"])
+            except:
+                item_dict["params"] = {}
         result.append(item_dict)
     
     return success({"total": total, "items": result})
@@ -66,7 +71,12 @@ async def get_test_query_data(id: int, db: AsyncSession = Depends(get_db), curre
     
     # 转换params字段为字典
     result = TestQueryDataOut.model_validate(test_data).model_dump()
-    result["params"] = json.loads(test_data.params)
+    # 如果params是字符串，转换为字典
+    if isinstance(result["params"], str):
+        try:
+            result["params"] = json.loads(result["params"])
+        except:
+            result["params"] = {}
     
     return success(result)
 
@@ -98,7 +108,12 @@ async def create_test_query_data(
     
     # 转换params字段为字典
     result = TestQueryDataOut.model_validate(test_data).model_dump()
-    result["params"] = json.loads(test_data.params)
+    # 如果params是字符串，转换为字典
+    if isinstance(result["params"], str):
+        try:
+            result["params"] = json.loads(result["params"])
+        except:
+            result["params"] = {}
     
     return success(result)
 
@@ -133,7 +148,12 @@ async def update_test_query_data(
     
     # 转换params字段为字典
     result = TestQueryDataOut.model_validate(test_data).model_dump()
-    result["params"] = json.loads(test_data.params)
+    # 如果params是字符串，转换为字典
+    if isinstance(result["params"], str):
+        try:
+            result["params"] = json.loads(result["params"])
+        except:
+            result["params"] = {}
     
     return success(result)
 
