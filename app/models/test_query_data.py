@@ -11,6 +11,7 @@ class TestQueryData(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     url: Mapped[str] = mapped_column(String(512), nullable=False)
+    url_desc: Mapped[str | None] = mapped_column(String(256))  # URL说明
     language: Mapped[str] = mapped_column(String(16), nullable=False)  # java 或 go
     sys_code: Mapped[str] = mapped_column(String(32), nullable=False)
     params: Mapped[str] = mapped_column(Text, nullable=False)  # JSON格式的请求参数

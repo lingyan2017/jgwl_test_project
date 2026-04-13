@@ -29,7 +29,8 @@
       
       <el-table :data="tableData" style="width: 100%">
         <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="url" label="URL" min-width="300" />
+        <el-table-column prop="url" label="URL" min-width="250" />
+        <el-table-column prop="url_desc" label="URL说明" min-width="150" />
         <el-table-column prop="language" label="语言" width="100">
           <template #default="{row}">
             {{ row.language === 'java' ? 'Java' : 'Go' }}
@@ -71,6 +72,9 @@
       <el-form :model="form" label-width="100px">
         <el-form-item label="URL" required>
           <el-input v-model="form.url" placeholder="请输入URL" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="URL说明">
+          <el-input v-model="form.urlDesc" placeholder="请输入URL说明，如：设置密码接口" style="width: 100%" />
         </el-form-item>
         <el-form-item label="语言" required>
           <el-select v-model="form.language" placeholder="请选择语言">
@@ -194,6 +198,7 @@ const query = reactive({
 
 const form = reactive({
   url: '',
+  urlDesc: '',
   language: 'java',
   sys_code: '',
   paramsStr: '{}'
@@ -248,12 +253,14 @@ const openDialog = (row?: any) => {
   if (row) {
     editRow.value = row;
     form.url = row.url;
+    form.urlDesc = row.url_desc || '';
     form.language = row.language;
     form.sys_code = row.sys_code;
     form.paramsStr = JSON.stringify(row.params, null, 2);
   } else {
     editRow.value = null;
     form.url = '';
+    form.urlDesc = '';
     form.language = 'java';
     form.sys_code = '';
     form.paramsStr = '{}';
@@ -274,6 +281,7 @@ const saveData = async () => {
     if (editRow.value) {
       await updateTestQueryData(editRow.value.id, {
         url: form.url,
+        url_desc: form.urlDesc,
         language: form.language,
         sys_code: form.sys_code,
         params
@@ -282,6 +290,7 @@ const saveData = async () => {
     } else {
       await createTestQueryData({
         url: form.url,
+        url_desc: form.urlDesc,
         language: form.language,
         sys_code: form.sys_code,
         params

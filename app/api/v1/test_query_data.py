@@ -95,6 +95,7 @@ async def create_test_query_data(
     
     test_data = TestQueryData(
         url=data.url,
+        url_desc=data.url_desc,
         language=data.language,
         sys_code=data.sys_code,
         params=params_str,

@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 class TestQueryDataCreate(BaseModel):
     url: str
+    url_desc: Optional[str] = None  # URL说明
     language: str  # java 或 go
     sys_code: str
     params: Dict[str, Any]  # JSON格式的请求参数
@@ -16,6 +17,7 @@ class TestQueryDataCreate(BaseModel):
 
 class TestQueryDataUpdate(BaseModel):
     url: Optional[str] = None
+    url_desc: Optional[str] = None  # URL说明
     language: Optional[str] = None
     sys_code: Optional[str] = None
     params: Optional[Dict[str, Any]] = None
@@ -25,6 +27,7 @@ class TestQueryDataUpdate(BaseModel):
 class TestQueryDataOut(BaseModel):
     id: int
     url: str
+    url_desc: Optional[str] = None  # URL说明
     language: str
     sys_code: str
     params: str | Dict[str, Any]  # 支持字符串或字典类型
