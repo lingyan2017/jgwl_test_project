@@ -18,3 +18,6 @@ export const updateMenu = (id: number, data: Record<string, unknown>) =>
 
 export const deleteMenu = (id: number) =>
   request.delete<unknown, ApiResponse<null>>(`/menus/delete/${id}`)
+
+export const getUserMenus = () =>
+  request.get<unknown, ApiResponse<MenuInfo[]>>('/menus/user-menus')

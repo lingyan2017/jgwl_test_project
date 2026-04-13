@@ -7,6 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.deps import get_current_user, require_super_admin
 from app.db.session import get_db
 from app.models.menu import SysMenu
+from app.models.role import SysUserRole, SysRoleMenu
+from app.models.user import SysUser
 from app.schemas.common import success
 from app.schemas.menu import MenuCreate, MenuOut, MenuUpdate
 
@@ -17,10 +19,10 @@ logger = logging.getLogger("app.menu")
 def build_menu_tree(menus: list, parent_id: int = 0) -> list:
     result = []
     for m in menus:
-        if m["parent_id"] == parent_id:
+        if m.get("parent_id", 0) == parent_id:
             m["children"] = build_menu_tree(menus, m["id"])
             result.append(m)
-    return sorted(result, key=lambda x: x["order_num"])
+    return sorted(result, key=lambda x: x["order_num"] if x.get("order_num") is not None else 999)
 
 
 @router.get("/tree")
@@ -99,3 +101,33 @@ async def delete_menu(id: int, db: AsyncSession = Depends(get_db), current_user=
         current_user.username, menu.id, menu.menu_name,
     )
     return success(msg="删除成功")
+
+
+@router.get("/user-menus")
+async def user_menu_tree(db: AsyncSession = Depends(get_db), current_user: SysUser = Depends(get_current_user)):
+    # 获取用户的角色ID列表
+    user_roles = (await db.execute(
+        select(SysUserRole.role_id).where(SysUserRole.user_id == current_user.id)
+    )).scalars().all()
+    
+    # 根据角色获取菜单ID列表
+    menu_ids = []
+    if user_roles:
+        role_menu_query = select(SysRoleMenu.menu_id).where(
+            SysRoleMenu.role_id.in_(user_roles)
+        )
+        menu_ids = (await db.execute(role_menu_query)).scalars().all()
+    
+    # 获取菜单详情
+    menus = []
+    if menu_ids:
+        menu_query = select(SysMenu).where(
+            SysMenu.id.in_(menu_ids),
+            SysMenu.deleted == 0,
+            SysMenu.status == 1
+        )
+        menus = (await db.execute(menu_query)).scalars().all()
+    
+    # 构建菜单树
+    menu_data = [MenuOut.model_validate(m).model_dump() for m in menus]
+    return success(build_menu_tree(menu_data))
