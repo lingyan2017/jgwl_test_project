@@ -111,6 +111,12 @@
         <el-form-item label="系统编码">
           <el-input v-model="callForm.sys_code" disabled />
         </el-form-item>
+        <el-form-item label="运行模式" required>
+          <el-radio-group v-model="callForm.run_mode">
+            <el-radio :label="0">测试环境</el-radio>
+            <el-radio :label="1">生产环境</el-radio>
+          </el-radio-group>
+        </el-form-item>
         <el-form-item label="请求参数">
           <el-input
             v-model="callForm.paramsStr"
@@ -120,21 +126,42 @@
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item v-if="callResponse" label="响应结果">
-          <el-input
-            v-model="callResponseStr"
-            type="textarea"
-            placeholder="响应结果"
-            :rows="5"
-            style="width: 100%"
-            disabled
-          />
-        </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="callDialogVisible = false">取消</el-button>
           <el-button type="primary" @click="callApi">确认调用</el-button>
+        </span>
+      </template>
+    </el-dialog>
+    
+    <!-- 响应结果弹窗 -->
+    <el-dialog v-model="responseDialogVisible" title="响应结果" width="700px">
+      <el-alert
+        v-if="callSuccess"
+        title="调用成功"
+        type="success"
+        :closable="false"
+        style="margin-bottom: 16px"
+      />
+      <el-alert
+        v-else
+        title="调用失败"
+        type="error"
+        :closable="false"
+        style="margin-bottom: 16px"
+      />
+      <el-input
+        v-model="responseDisplayStr"
+        type="textarea"
+        placeholder="响应结果"
+        :rows="15"
+        style="width: 100%"
+        readonly
+      />
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button type="primary" @click="responseDialogVisible = false">关闭</el-button>
         </span>
       </template>
     </el-dialog>
@@ -150,10 +177,12 @@ import { getTestQueryDataList, createTestQueryData, updateTestQueryData, deleteT
 const router = useRouter();
 const dialogVisible = ref(false);
 const callDialogVisible = ref(false);
+const responseDialogVisible = ref(false);
 const editRow = ref<any>(null);
 const tableData = ref<any[]>([]);
 const total = ref(0);
 const callResponse = ref<any>(null);
+const callSuccess = ref(false);
 
 const query = reactive({
   page: 1,
@@ -175,11 +204,17 @@ const callForm = reactive({
   url: '',
   language: '',
   sys_code: '',
+  run_mode: 0,  // 0-测试环境, 1-生产环境
   paramsStr: '{}'
 });
 
 const callResponseStr = computed(() => {
   return callResponse.value ? JSON.stringify(callResponse.value, null, 2) : '';
+});
+
+const responseDisplayStr = computed(() => {
+  if (!callResponse.value) return '';
+  return JSON.stringify(callResponse.value, null, 2);
 });
 
 const loadData = async () => {
@@ -280,8 +315,10 @@ const openCallDialog = (row: any) => {
   callForm.url = row.url;
   callForm.language = row.language === 'java' ? 'Java' : 'Go';
   callForm.sys_code = row.sys_code;
+  callForm.run_mode = 0;  // 默认测试环境
   callForm.paramsStr = JSON.stringify(row.params, null, 2);
   callResponse.value = null;
+  callSuccess.value = false;
   callDialogVisible.value = true;
 };
 
@@ -297,10 +334,21 @@ const callApi = async () => {
 
     const response = await callTestQueryData({
       test_query_data_id: callForm.id,
-      params
+      params,
+      run_mode: callForm.run_mode
     });
+    
+    // 保存响应数据
     callResponse.value = response.data;
-    ElMessage.success('调用成功');
+    callSuccess.value = response.data.success;
+    
+    // 关闭调用对话框
+    callDialogVisible.value = false;
+    
+    // 弹出显示响应结果
+    responseDialogVisible.value = true;
+    
+    ElMessage.success(response.data.success ? '调用成功' : '调用失败');
   } catch (error: any) {
     ElMessage.error('调用失败: ' + (error.response?.data?.detail || '未知错误'));
   }

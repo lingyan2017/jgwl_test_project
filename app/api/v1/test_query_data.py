@@ -1,5 +1,6 @@
 import json
 import logging
+import urllib.parse
 
 import httpx
 
@@ -8,8 +9,10 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user, require_admin
+from app.core.aes_cipher import AESCipher
 from app.db.session import get_db
 from app.models.test_query_data import TestQueryData, TestQueryDataLog
+from app.models.sys_config import SysConfig
 from app.models.user import SysUser
 from app.schemas.common import success
 from app.schemas.test_query_data import (
@@ -186,38 +189,147 @@ async def call_test_query_data(
     db: AsyncSession = Depends(get_db),
     current_user: SysUser = Depends(get_current_user),
 ):
+    logger.info(f"[TEST_QUERY_DATA] 开始调用接口 - test_query_data_id={data.test_query_data_id}")
+    
     # 获取测试数据
     test_data = (await db.execute(select(TestQueryData).where(TestQueryData.id == data.test_query_data_id, TestQueryData.deleted == 0))).scalar_one_or_none()
     if not test_data:
+        logger.warning(f"[TEST_QUERY_DATA] 测试数据不存在 - id={data.test_query_data_id}")
         raise HTTPException(status_code=404, detail="测试数据不存在")
+    
+    logger.info(f"[TEST_QUERY_DATA] 获取测试数据成功 - url={test_data.url}, language={test_data.language}, sys_code={test_data.sys_code}")
     
     # 准备请求参数
     request_params = data.params or json.loads(test_data.params)
-    url = test_data.url
+    language = test_data.language  # java 或 go
+    sys_code = test_data.sys_code
     
-    # 发送请求
+    logger.info(f"[TEST_QUERY_DATA] 请求参数 - Keys: {list(request_params.keys()) if isinstance(request_params, dict) else 'N/A'}")
+    
+    # 获取 run_mode 参数（优先使用前端传递的，否则使用默认值 0）
+    run_mode = data.run_mode if data.run_mode is not None else 0
+    logger.info(f"[TEST_QUERY_DATA] 运行模式 - run_mode={run_mode} ({'生产环境' if run_mode == 1 else '测试环境'})")
+    
+    # 根据 sys_code、status 和 run_mode 查询系统配置
+    config = (await db.execute(
+        select(SysConfig).where(
+            SysConfig.sys_code == sys_code,
+            SysConfig.status == 1,  # 只查询可用的配置
+            SysConfig.run_mode == run_mode  # 匹配运行模式
+        )
+    )).scalar_one_or_none()
+    
+    if not config:
+        logger.error(f"[TEST_QUERY_DATA] 未找到系统配置 - sys_code={sys_code}, run_mode={run_mode}")
+        raise HTTPException(status_code=404, detail=f"未找到系统配置: sys_code={sys_code}, run_mode={run_mode}")
+    
+    logger.info(f"[TEST_QUERY_DATA] 获取系统配置成功 - sys_code={config.sys_code}, status={config.status}, run_mode={config.run_mode}")
+    
+    # 根据语言选择域名
+    domain_name = config.java_domain_name if language == "java" else config.go_domain_name
+    if not domain_name:
+        logger.error(f"[TEST_QUERY_DATA] {language.upper()} 域名未配置")
+        raise HTTPException(status_code=400, detail=f"{language.upper()} 域名未配置")
+    
+    logger.info(f"[TEST_QUERY_DATA] 使用域名 - language={language}, domain={domain_name}")
+    
+    # 使用 AES 加密请求参数
     try:
+        logger.info(f"[TEST_QUERY_DATA] 开始 AES 加密 - key_length={len(config.aes_key)}, iv_length={len(config.aes_iv)}")
+        aes_cipher = AESCipher(config.aes_key, config.aes_iv)
+        encrypted_data = aes_cipher.encrypt_json(request_params)
+        logger.info(f"[TEST_QUERY_DATA] AES 加密成功 - 加密数据长度: {len(encrypted_data)} chars")
+    except Exception as e:
+        logger.error(f"[TEST_QUERY_DATA] AES 加密失败: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"AES 加密失败: {str(e)}")
+    
+    # 构建请求 URL: domain_name?data=encrypted_data
+    if run_mode == 0:
+        if language == "java":
+            url = f"{domain_name}gatewat/ApiService{test_data.url}?data={encrypted_data}"
+        else:
+            url = f"{domain_name}{test_data.url}?data={encrypted_data}&source={sys_code}"
+    else:
+        logger.info(f"[TEST_QUERY_DATA] 禁止使用生产环境 - language={language}, domain={domain_name}")
+        return success(msg="禁止使用生产环境")
+
+    logger.info(
+        "[TEST_QUERY_DATA] 发送请求 - operator=%s sys_code=%s language=%s domain=%s",
+        _op(current_user), sys_code, language, domain_name,
+    )
+    logger.debug(f"[TEST_QUERY_DATA] 完整 URL: {url[:200]}...")
+    
+    # 发送 GET 请求
+    try:
+        logger.info(f"[TEST_QUERY_DATA] 发起 HTTP POST 请求...")
         async with httpx.AsyncClient() as client:
-            response = await client.post(url, json=request_params, timeout=30.0)
-            response_data = response.json()
+            response = await client.post(url, timeout=30.0)
+            response.raise_for_status()
+            response_json = response.json()
+            logger.info(f"[TEST_QUERY_DATA] HTTP 请求成功 - 状态码: {response.status_code}")
+            logger.debug(f"[TEST_QUERY_DATA] 响应 JSON: {json.dumps(response_json, ensure_ascii=False)[:200]}...")
             status = 1  # 成功
             error_msg = None
     except Exception as e:
-        response_data = {"error": str(e)}
+        response_json = {}
         status = 0  # 失败
         error_msg = str(e)
+        logger.error(f"[TEST_QUERY_DATA] HTTP 请求失败: {e}", exc_info=True)
+    
+    # 解密响应数据中的 data 字段
+    decrypted_response = None
+    if status == 1 and response_json:
+        try:
+            # 获取加密的 data 字段
+            encrypted_data = response_json.get("data", "")
+            
+            if not encrypted_data:
+                logger.warning("[TEST_QUERY_DATA] 响应中 data 字段为空")
+                response_data = response_json
+            else:
+                logger.info(f"[TEST_QUERY_DATA] 开始 AES 解密响应 data - 加密数据长度: {len(encrypted_data)} chars")
+                decrypted_data = aes_cipher.decrypt(encrypted_data)
+                logger.info(f"[TEST_QUERY_DATA] AES 解密成功 - 解密后长度: {len(decrypted_data)} bytes")
+                
+                # 尝试解析为 JSON
+                try:
+                    decrypted_json = json.loads(decrypted_data)
+                    logger.info(f"[TEST_QUERY_DATA] JSON 解析成功 - Keys: {list(decrypted_json.keys()) if isinstance(decrypted_json, dict) else 'N/A'}")
+                    
+                    # 构建最终响应：保留 code, message，替换 data 为解密后的内容
+                    response_data = {
+                        "code": response_json.get("code", 0),
+                        "message": response_json.get("message", ""),
+                        "data": decrypted_json
+                    }
+                except json.JSONDecodeError:
+                    logger.warning(f"[TEST_QUERY_DATA] 解密后的数据不是有效 JSON，返回原始字符串")
+                    response_data = {
+                        "code": response_json.get("code", 0),
+                        "message": response_json.get("message", ""),
+                        "data": decrypted_data
+                    }
+        except Exception as e:
+            logger.error(f"[TEST_QUERY_DATA] AES 解密失败: {e}", exc_info=True)
+            response_data = {"error": f"解密失败: {str(e)}", "original_response": response_json}
+            status = 0
+            error_msg = f"AES 解密失败: {str(e)}"
+    else:
+        response_data = {"error": error_msg} if error_msg else {}
     
     # 记录日志
     log = TestQueryDataLog(
         test_query_data_id=test_data.id,
-        request_params=json.dumps(request_params),
-        response_data=json.dumps(response_data),
+        request_params=json.dumps(request_params, ensure_ascii=False),
+        response_data=json.dumps(response_data, ensure_ascii=False),
         status=status,
         error_msg=error_msg,
         create_user=current_user.username
     )
     db.add(log)
     await db.commit()
+    
+    logger.info(f"[TEST_QUERY_DATA] 调用完成 - status={'成功' if status == 1 else '失败'}, 日志已保存")
     
     # 返回响应
     if status == 1:

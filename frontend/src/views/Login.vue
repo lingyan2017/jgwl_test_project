@@ -64,7 +64,7 @@ const formRef = ref<FormInstance>()
 const loading = ref<boolean>(false)
 
 interface LoginForm { tenant_id: string; username: string; password: string }
-const form = reactive<LoginForm>({ tenant_id: 'default', username: 'admin', password: '' })
+const form = reactive<LoginForm>({ tenant_id: 'default', username: 'admin', password: 'Admin@123' })
 
 const rules: FormRules<LoginForm> = {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],

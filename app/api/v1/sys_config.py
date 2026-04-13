@@ -24,17 +24,17 @@ def _op(u: SysUser) -> str:
 async def list_sys_config(
     page: int = 1,
     page_size: int = 10,
-    item_name: str | None = None,
     sys_code: str | None = None,
+    status: int | None = None,
     db: AsyncSession = Depends(get_db),
     current_user: SysUser = Depends(get_current_user),
 ):
     q = select(SysConfig)
 
-    if item_name:
-        q = q.where(SysConfig.item_name.like(f"%{item_name}%"))
     if sys_code:
         q = q.where(SysConfig.sys_code == sys_code)
+    if status is not None:
+        q = q.where(SysConfig.status == status)
 
     total = (await db.execute(select(func.count()).select_from(q.subquery()))).scalar()
     items = (await db.execute(q.order_by(SysConfig.id).offset((page - 1) * page_size).limit(page_size))).scalars().all()
@@ -58,8 +58,12 @@ async def create_sys_config(
     current_user: SysUser = Depends(require_admin),
 ):
     config = SysConfig(
-        item_name=data.item_name,
-        item_value=data.item_value,
+        aes_key=data.aes_key,
+        aes_iv=data.aes_iv,
+        java_domain_name=data.java_domain_name,
+        go_domain_name=data.go_domain_name,
+        status=data.status,
+        run_mode=data.run_mode,
         sys_code=data.sys_code,
         create_user=current_user.username
     )
@@ -68,8 +72,8 @@ async def create_sys_config(
     await db.refresh(config)
     
     logger.info(
-        "[SYS_CONFIG] create  operator=%s -> item_name=%s sys_code=%s",
-        _op(current_user), config.item_name, config.sys_code,
+        "[SYS_CONFIG] create  operator=%s -> sys_code=%s aes_key=%s",
+        _op(current_user), config.sys_code, config.aes_key,
     )
     
     return success(SysConfigOut.model_validate(config))
@@ -97,8 +101,8 @@ async def update_sys_config(
     await db.refresh(config)
     
     logger.info(
-        "[SYS_CONFIG] update  operator=%s -> id=%d item_name=%s",
-        _op(current_user), config.id, config.item_name,
+        "[SYS_CONFIG] update  operator=%s -> id=%d sys_code=%s",
+        _op(current_user), config.id, config.sys_code,
     )
     
     return success(SysConfigOut.model_validate(config))
@@ -118,8 +122,8 @@ async def delete_sys_config(
     await db.commit()
     
     logger.warning(
-        "[SYS_CONFIG] delete  operator=%s -> id=%d item_name=%s",
-        _op(current_user), config.id, config.item_name,
+        "[SYS_CONFIG] delete  operator=%s -> id=%d sys_code=%s",
+        _op(current_user), config.id, config.sys_code,
     )
     
     return success(msg="删除成功")

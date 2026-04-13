@@ -62,6 +62,7 @@ class TestQueryDataLogOut(BaseModel):
 class TestQueryDataCallRequest(BaseModel):
     test_query_data_id: int
     params: Optional[Dict[str, Any]] = None
+    run_mode: Optional[int] = None  # 0-测试环境, 1-生产环境
 
 
 class TestQueryDataCallResponse(BaseModel):
