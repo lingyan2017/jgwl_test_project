@@ -10,7 +10,6 @@ class TestQueryDataCreate(BaseModel):
     url: str
     url_desc: Optional[str] = None  # URL说明
     language: str  # java 或 go
-    sys_code: str
     params: Dict[str, Any]  # JSON格式的请求参数
     create_user: Optional[str] = None
 
@@ -19,7 +18,6 @@ class TestQueryDataUpdate(BaseModel):
     url: Optional[str] = None
     url_desc: Optional[str] = None  # URL说明
     language: Optional[str] = None
-    sys_code: Optional[str] = None
     params: Optional[Dict[str, Any]] = None
     update_user: Optional[str] = None
 
@@ -29,7 +27,6 @@ class TestQueryDataOut(BaseModel):
     url: str
     url_desc: Optional[str] = None  # URL说明
     language: str
-    sys_code: str
     params: str | Dict[str, Any]  # 支持字符串或字典类型
     deleted: int
     create_time: Optional[datetime] = None
@@ -64,6 +61,7 @@ class TestQueryDataLogOut(BaseModel):
 
 class TestQueryDataCallRequest(BaseModel):
     test_query_data_id: int
+    sys_code: str  # 系统编码（调用时传入）
     params: Optional[Dict[str, Any]] = None
     run_mode: Optional[int] = None  # 0-测试环境, 1-生产环境
 

@@ -36,7 +36,6 @@
             {{ row.language === 'java' ? 'Java' : 'Go' }}
           </template>
         </el-table-column>
-        <el-table-column prop="sys_code" label="系统编码" width="150" />
         <el-table-column prop="params" label="请求参数" min-width="200">
           <template #default="{row}">
             <el-tooltip :content="JSON.stringify(row.params, null, 2)" placement="top">
@@ -46,11 +45,12 @@
         </el-table-column>
         <el-table-column prop="create_time" label="创建时间" width="180" />
         <el-table-column prop="create_user" label="创建人" width="120" />
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="280" fixed="right">
           <template #default="{row}">
             <el-button size="small" type="primary" text @click="openDialog(row)">编辑</el-button>
             <el-button size="small" type="danger" text @click="handleDelete(row.id)">删除</el-button>
             <el-button size="small" type="success" text @click="openCallDialog(row)">调用</el-button>
+            <el-button size="small" type="info" text @click="viewLatestLog(row)">最新日志</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -82,9 +82,6 @@
             <el-option label="Go" value="go" />
           </el-select>
         </el-form-item>
-        <el-form-item label="系统编码" required>
-          <el-input v-model="form.sys_code" placeholder="请输入系统编码" style="width: 100%" />
-        </el-form-item>
         <el-form-item label="请求参数" required>
           <el-input
             v-model="form.paramsStr"
@@ -112,8 +109,8 @@
         <el-form-item label="语言">
           <el-input v-model="callForm.language" disabled />
         </el-form-item>
-        <el-form-item label="系统编码">
-          <el-input v-model="callForm.sys_code" disabled />
+        <el-form-item label="系统编码" required>
+          <el-input v-model="callForm.sysCode" placeholder="请输入系统编码" style="width: 100%" />
         </el-form-item>
         <el-form-item label="运行模式" required>
           <el-radio-group v-model="callForm.run_mode">
@@ -169,6 +166,48 @@
         </span>
       </template>
     </el-dialog>
+    
+    <!-- 最新日志弹窗 -->
+    <el-dialog v-model="logDialogVisible" title="最新调用日志" width="800px">
+      <div v-if="latestLog">
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="日志ID">{{ latestLog.id }}</el-descriptions-item>
+          <el-descriptions-item label="系统编码">{{ latestLog.sys_code }}</el-descriptions-item>
+          <el-descriptions-item label="状态">
+            <el-tag :type="latestLog.status === 1 ? 'success' : 'danger'">
+              {{ latestLog.status === 1 ? '成功' : '失败' }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="调用时间">{{ latestLog.create_time }}</el-descriptions-item>
+          <el-descriptions-item label="调用人">{{ latestLog.create_user }}</el-descriptions-item>
+          <el-descriptions-item label="错误信息" v-if="latestLog.error_msg">
+            {{ latestLog.error_msg }}
+          </el-descriptions-item>
+        </el-descriptions>
+        <el-divider content-position="left">请求参数</el-divider>
+        <el-input
+          v-model="latestLogRequestStr"
+          type="textarea"
+          :rows="8"
+          readonly
+        />
+        <el-divider content-position="left">响应数据</el-divider>
+        <el-input
+          v-model="latestLogResponseStr"
+          type="textarea"
+          :rows="8"
+          readonly
+        />
+      </div>
+      <div v-else>
+        <el-empty description="暂无日志记录" />
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button type="primary" @click="logDialogVisible = false">关闭</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -176,17 +215,19 @@
 import { ref, reactive, onMounted, computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useRouter } from 'vue-router';
-import { getTestQueryDataList, createTestQueryData, updateTestQueryData, deleteTestQueryData, callTestQueryData } from '@/api/testQueryData';
+import { getTestQueryDataList, createTestQueryData, updateTestQueryData, deleteTestQueryData, callTestQueryData, getLatestTestQueryDataLog } from '@/api/testQueryData';
 
 const router = useRouter();
 const dialogVisible = ref(false);
 const callDialogVisible = ref(false);
 const responseDialogVisible = ref(false);
+const logDialogVisible = ref(false);
 const editRow = ref<any>(null);
 const tableData = ref<any[]>([]);
 const total = ref(0);
 const callResponse = ref<any>(null);
 const callSuccess = ref(false);
+const latestLog = ref<any>(null);
 
 const query = reactive({
   page: 1,
@@ -200,7 +241,6 @@ const form = reactive({
   url: '',
   urlDesc: '',
   language: 'java',
-  sys_code: '',
   paramsStr: '{}'
 });
 
@@ -208,7 +248,7 @@ const callForm = reactive({
   id: 0,
   url: '',
   language: '',
-  sys_code: '',
+  sysCode: '',  // 调用时填写的系统编码
   run_mode: 0,  // 0-测试环境, 1-生产环境
   paramsStr: '{}'
 });
@@ -220,6 +260,16 @@ const callResponseStr = computed(() => {
 const responseDisplayStr = computed(() => {
   if (!callResponse.value) return '';
   return JSON.stringify(callResponse.value, null, 2);
+});
+
+const latestLogRequestStr = computed(() => {
+  if (!latestLog.value || !latestLog.value.request_params) return '';
+  return JSON.stringify(latestLog.value.request_params, null, 2);
+});
+
+const latestLogResponseStr = computed(() => {
+  if (!latestLog.value || !latestLog.value.response_data) return '';
+  return JSON.stringify(latestLog.value.response_data, null, 2);
 });
 
 const loadData = async () => {
@@ -255,14 +305,12 @@ const openDialog = (row?: any) => {
     form.url = row.url;
     form.urlDesc = row.url_desc || '';
     form.language = row.language;
-    form.sys_code = row.sys_code;
     form.paramsStr = JSON.stringify(row.params, null, 2);
   } else {
     editRow.value = null;
     form.url = '';
     form.urlDesc = '';
     form.language = 'java';
-    form.sys_code = '';
     form.paramsStr = '{}';
   }
   dialogVisible.value = true;
@@ -283,7 +331,6 @@ const saveData = async () => {
         url: form.url,
         url_desc: form.urlDesc,
         language: form.language,
-        sys_code: form.sys_code,
         params
       });
       ElMessage.success('更新成功');
@@ -292,7 +339,6 @@ const saveData = async () => {
         url: form.url,
         url_desc: form.urlDesc,
         language: form.language,
-        sys_code: form.sys_code,
         params
       });
       ElMessage.success('创建成功');
@@ -323,7 +369,7 @@ const openCallDialog = (row: any) => {
   callForm.id = row.id;
   callForm.url = row.url;
   callForm.language = row.language === 'java' ? 'Java' : 'Go';
-  callForm.sys_code = row.sys_code;
+  callForm.sysCode = '';  // 清空，需要用户重新输入
   callForm.run_mode = 0;  // 默认测试环境
   callForm.paramsStr = JSON.stringify(row.params, null, 2);
   callResponse.value = null;
@@ -341,8 +387,14 @@ const callApi = async () => {
       return;
     }
 
+    if (!callForm.sysCode) {
+      ElMessage.error('请输入系统编码');
+      return;
+    }
+
     const response = await callTestQueryData({
       test_query_data_id: callForm.id,
+      sys_code: callForm.sysCode,
       params,
       run_mode: callForm.run_mode
     });
@@ -360,6 +412,16 @@ const callApi = async () => {
     ElMessage.success(response.data.success ? '调用成功' : '调用失败');
   } catch (error: any) {
     ElMessage.error('调用失败: ' + (error.response?.data?.detail || '未知错误'));
+  }
+};
+
+const viewLatestLog = async (row: any) => {
+  try {
+    const response = await getLatestTestQueryDataLog(row.id);
+    latestLog.value = response.data.log;
+    logDialogVisible.value = true;
+  } catch (error) {
+    ElMessage.error('获取日志失败');
   }
 };
 

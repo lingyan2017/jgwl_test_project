@@ -97,7 +97,6 @@ async def create_test_query_data(
         url=data.url,
         url_desc=data.url_desc,
         language=data.language,
-        sys_code=data.sys_code,
         params=params_str,
         create_user=current_user.username
     )
@@ -106,8 +105,8 @@ async def create_test_query_data(
     await db.refresh(test_data)
     
     logger.info(
-        "[TEST_QUERY_DATA] create  operator=%s -> url=%s language=%s sys_code=%s",
-        _op(current_user), test_data.url, test_data.language, test_data.sys_code,
+        "[TEST_QUERY_DATA] create  operator=%s -> url=%s language=%s",
+        _op(current_user), test_data.url, test_data.language,
     )
     
     # 转换params字段为字典
@@ -190,7 +189,7 @@ async def call_test_query_data(
     db: AsyncSession = Depends(get_db),
     current_user: SysUser = Depends(get_current_user),
 ):
-    logger.info(f"[TEST_QUERY_DATA] 开始调用接口 - test_query_data_id={data.test_query_data_id}")
+    logger.info(f"[TEST_QUERY_DATA] 开始调用接口 - test_query_data_id={data.test_query_data_id}, sys_code={data.sys_code}")
     
     # 获取测试数据
     test_data = (await db.execute(select(TestQueryData).where(TestQueryData.id == data.test_query_data_id, TestQueryData.deleted == 0))).scalar_one_or_none()
@@ -198,12 +197,12 @@ async def call_test_query_data(
         logger.warning(f"[TEST_QUERY_DATA] 测试数据不存在 - id={data.test_query_data_id}")
         raise HTTPException(status_code=404, detail="测试数据不存在")
     
-    logger.info(f"[TEST_QUERY_DATA] 获取测试数据成功 - url={test_data.url}, language={test_data.language}, sys_code={test_data.sys_code}")
+    logger.info(f"[TEST_QUERY_DATA] 获取测试数据成功 - url={test_data.url}, language={test_data.language}")
     
     # 准备请求参数
     request_params = data.params or json.loads(test_data.params)
     language = test_data.language  # java 或 go
-    sys_code = test_data.sys_code
+    sys_code = data.sys_code  # 从调用参数中获取
     
     logger.info(f"[TEST_QUERY_DATA] 请求参数 - Keys: {list(request_params.keys()) if isinstance(request_params, dict) else 'N/A'}")
     
@@ -321,6 +320,7 @@ async def call_test_query_data(
     # 记录日志
     log = TestQueryDataLog(
         test_query_data_id=test_data.id,
+        sys_code=sys_code,
         request_params=json.dumps(request_params, ensure_ascii=False),
         response_data=json.dumps(response_data, ensure_ascii=False),
         status=status,
@@ -364,6 +364,7 @@ async def get_test_query_data_logs(
         item_dict = {
             "id": item.id,
             "test_query_data_id": item.test_query_data_id,
+            "sys_code": item.sys_code,
             "request_params": json.loads(item.request_params),
             "response_data": json.loads(item.response_data),
             "status": item.status,
@@ -374,3 +375,39 @@ async def get_test_query_data_logs(
         result.append(item_dict)
     
     return success({"total": total, "items": result})
+
+
+@router.get("/latest-log/{test_query_data_id}")
+async def get_latest_test_query_data_log(
+    test_query_data_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: SysUser = Depends(get_current_user),
+):
+    """查询当前用户的最新1条日志（倒序）"""
+    log = (await db.execute(
+        select(TestQueryDataLog)
+        .where(
+            TestQueryDataLog.test_query_data_id == test_query_data_id,
+            TestQueryDataLog.create_user == current_user.username
+        )
+        .order_by(TestQueryDataLog.create_time.desc())
+        .limit(1)
+    )).scalar_one_or_none()
+    
+    if not log:
+        return success({"log": None})
+    
+    # 转换字段为字典
+    log_dict = {
+        "id": log.id,
+        "test_query_data_id": log.test_query_data_id,
+        "sys_code": log.sys_code,
+        "request_params": json.loads(log.request_params),
+        "response_data": json.loads(log.response_data),
+        "status": log.status,
+        "error_msg": log.error_msg,
+        "create_time": log.create_time,
+        "create_user": log.create_user
+    }
+    
+    return success({"log": log_dict})

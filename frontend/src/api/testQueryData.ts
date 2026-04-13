@@ -60,3 +60,11 @@ export const getTestQueryDataLogs = (test_query_data_id: number, params: any) =>
     params
   });
 };
+
+// 获取最新一条测试查询数据日志（当前用户）
+export const getLatestTestQueryDataLog = (test_query_data_id: number) => {
+  return request({
+    url: `/test-query-data/latest-log/${test_query_data_id}`,
+    method: 'get'
+  });
+};

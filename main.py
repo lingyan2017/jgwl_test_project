@@ -40,4 +40,11 @@ async def root():
 
 if __name__ == "__main__":
     print(f"Swagger: http://127.0.0.1:8030/docs")
-    uvicorn.run(app="main:app", host="0.0.0.0", port=8030, reload=True)
+    uvicorn.run(
+        app="main:app",
+        host="0.0.0.0",
+        port=8030,
+        reload=True,
+        reload_dirs=["app"],  # 只监控 app 目录
+        reload_excludes=["*.log", "logs", "logs/*", "__pycache__", "*.pyc", "node_modules"]  # 排除日志和缓存
+    )
