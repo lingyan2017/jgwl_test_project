@@ -22,63 +22,63 @@
             <template #title>首页</template>
           </el-menu-item>
 
-          <!-- 仅管理员(user_type <= 1)可见 -->
-          <el-sub-menu v-if="isAdmin" index="/system">
-            <template #title>
-              <el-icon><Setting /></el-icon>
-              <span>系统管理</span>
-            </template>
-
-            <!-- 仅超级管理员可见 -->
-            <el-menu-item v-if="isSuperAdmin" index="/system/tenant">
-              <el-icon><OfficeBuilding /></el-icon>
-              <template #title>租户管理</template>
+          <!-- 动态菜单 -->
+          <template v-for="menu in authStore.menus" :key="menu.id">
+            <!-- 无子菜单 -->
+            <el-menu-item 
+              v-if="!menu.children || menu.children.length === 0" 
+              :index="menu.path || `/${menu.id}`"
+            >
+              <el-icon v-if="menu.icon">
+                <component :is="getIconComponent(menu.icon)" />
+              </el-icon>
+              <template #title>{{ menu.menu_name }}</template>
             </el-menu-item>
-
-            <el-menu-item index="/system/user">
-              <el-icon><User /></el-icon>
-              <template #title>用户管理</template>
-            </el-menu-item>
-            <el-menu-item index="/system/dept">
-              <el-icon><Folder /></el-icon>
-              <template #title>部门管理</template>
-            </el-menu-item>
-            <el-menu-item index="/system/post">
-              <el-icon><Postcard /></el-icon>
-              <template #title>岗位管理</template>
-            </el-menu-item>
-            <el-menu-item index="/system/role">
-              <el-icon><UserFilled /></el-icon>
-              <template #title>角色管理</template>
-            </el-menu-item>
-
-            <!-- 仅超级管理员可见 -->
-            <el-menu-item v-if="isSuperAdmin" index="/system/menu">
-              <el-icon><Menu /></el-icon>
-              <template #title>菜单管理</template>
-            </el-menu-item>
-            <el-menu-item v-if="isSuperAdmin" index="/system/permission">
-              <el-icon><Lock /></el-icon>
-              <template #title>权限管理</template>
-            </el-menu-item>
-          </el-sub-menu>
-          
-          <!-- 测试管理菜单 - 仅管理员(user_type <= 1)可见 -->
-          <el-sub-menu v-if="isAdmin" index="/test">
-            <template #title>
-              <el-icon><Document /></el-icon>
-              <span>测试管理</span>
-            </template>
             
-            <el-menu-item index="/test/test-query-data">
-              <el-icon><Document /></el-icon>
-              <template #title>测试查询数据</template>
-            </el-menu-item>
-            <el-menu-item index="/test/sys-config">
-              <el-icon><Setting /></el-icon>
-              <template #title>系统配置</template>
-            </el-menu-item>
-          </el-sub-menu>
+            <!-- 有子菜单 -->
+            <el-sub-menu v-else :index="menu.path || `/${menu.id}`">
+              <template #title>
+                <el-icon v-if="menu.icon">
+                  <component :is="getIconComponent(menu.icon)" />
+                </el-icon>
+                <span>{{ menu.menu_name }}</span>
+              </template>
+              
+              <template v-for="child in menu.children" :key="child.id">
+                <!-- 二级菜单 - 构建完整路径 -->
+                <el-menu-item 
+                  v-if="!child.children || child.children.length === 0"
+                  :index="`${menu.path}/${child.path}`"
+                >
+                  <el-icon v-if="child.icon">
+                    <component :is="getIconComponent(child.icon)" />
+                  </el-icon>
+                  <template #title>{{ child.menu_name }}</template>
+                </el-menu-item>
+                
+                <!-- 三级菜单 -->
+                <el-sub-menu v-else :index="`${menu.path}/${child.path}`">
+                  <template #title>
+                    <el-icon v-if="child.icon">
+                      <component :is="getIconComponent(child.icon)" />
+                    </el-icon>
+                    <span>{{ child.menu_name }}</span>
+                  </template>
+                  
+                  <el-menu-item 
+                    v-for="grandChild in child.children" 
+                    :key="grandChild.id"
+                    :index="`${menu.path}/${child.path}/${grandChild.path}`"
+                  >
+                    <el-icon v-if="grandChild.icon">
+                      <component :is="getIconComponent(grandChild.icon)" />
+                    </el-icon>
+                    <template #title>{{ grandChild.menu_name }}</template>
+                  </el-menu-item>
+                </el-sub-menu>
+              </template>
+            </el-sub-menu>
+          </template>
         </el-menu>
       </el-scrollbar>
     </el-aside>
@@ -134,6 +134,7 @@ import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { ElMessageBox } from 'element-plus'
+import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -155,6 +156,14 @@ const userInitial = computed(() => {
   const name = authStore.user?.real_name ?? authStore.user?.username ?? 'U'
   return name.charAt(0).toUpperCase()
 })
+
+// 获取图标组件
+const getIconComponent = (iconName: string | null) => {
+  if (!iconName) return null
+  // 将数据库中的图标名称转换为 Element Plus 图标组件
+  // 例如: 'HomeFilled' -> HomeFilled 组件
+  return (ElementPlusIconsVue as any)[iconName] || null
+}
 
 async function handleCommand(cmd: string): Promise<void> {
   if (cmd === 'logout') {
