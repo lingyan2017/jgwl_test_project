@@ -11,6 +11,7 @@ class TestQueryDataCreate(BaseModel):
     url_desc: Optional[str] = None  # URL说明
     language: str  # java 或 go
     params: Dict[str, Any]  # JSON格式的请求参数
+    has_image: Optional[int] = 0  # 是否包含图片：0-否，1-是
     create_user: Optional[str] = None
 
 
@@ -19,6 +20,7 @@ class TestQueryDataUpdate(BaseModel):
     url_desc: Optional[str] = None  # URL说明
     language: Optional[str] = None
     params: Optional[Dict[str, Any]] = None
+    has_image: Optional[int] = None  # 是否包含图片：0-否，1-是
     update_user: Optional[str] = None
 
 
@@ -28,6 +30,7 @@ class TestQueryDataOut(BaseModel):
     url_desc: Optional[str] = None  # URL说明
     language: str
     params: str | Dict[str, Any]  # 支持字符串或字典类型
+    has_image: Optional[int] = 0  # 是否包含图片：0-否，1-是
     deleted: int
     create_time: Optional[datetime] = None
     update_time: Optional[datetime] = None

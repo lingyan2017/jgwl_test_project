@@ -14,6 +14,7 @@ class TestQueryData(Base):
     url_desc: Mapped[str | None] = mapped_column(String(256))  # URL说明
     language: Mapped[str] = mapped_column(String(16), nullable=False)  # java 或 go
     params: Mapped[str] = mapped_column(Text, nullable=False)  # JSON格式的请求参数
+    has_image: Mapped[int] = mapped_column(SmallInteger, default=0)  # 是否包含图片：0-否，1-是
     deleted: Mapped[int] = mapped_column(SmallInteger, default=0)
     create_time: Mapped[datetime | None] = mapped_column(DateTime, default=func.now())
     update_time: Mapped[datetime | None] = mapped_column(DateTime, default=func.now(), onupdate=func.now())

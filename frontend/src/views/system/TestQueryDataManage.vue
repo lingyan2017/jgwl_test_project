@@ -43,6 +43,13 @@
             </el-tooltip>
           </template>
         </el-table-column>
+        <el-table-column prop="has_image" label="包含图片" width="100">
+          <template #default="{row}">
+            <el-tag :type="row.has_image === 1 ? 'success' : 'info'">
+              {{ row.has_image === 1 ? '是' : '否' }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="create_time" label="创建时间" width="180" />
         <el-table-column prop="create_user" label="创建人" width="120" />
         <el-table-column label="操作" width="280" fixed="right">
@@ -91,6 +98,15 @@
             style="width: 100%"
           />
         </el-form-item>
+        <el-form-item label="包含图片">
+          <el-switch
+            v-model="form.hasImage"
+            :active-value="1"
+            :inactive-value="0"
+            active-text="是"
+            inactive-text="否"
+          />
+        </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
@@ -126,6 +142,23 @@
             :rows="5"
             style="width: 100%"
           />
+        </el-form-item>
+        <!-- 文件上传区域，仅当hasImage为true时显示 -->
+        <el-form-item v-if="selectedTestData?.has_image === 1" label="上传图片">
+          <el-upload
+            v-model:file-list="fileList"
+            drag
+            multiple
+            :before-upload="beforeUpload"
+            :on-remove="handleRemoveFile"
+            :auto-upload="false"
+          >
+            <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+            <div class="el-upload__text">拖拽文件到此处或<em>点击上传</em></div>
+            <template #tip>
+              <div class="el-upload__tip">可上传多个图片文件</div>
+            </template>
+          </el-upload>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -215,7 +248,8 @@
 import { ref, reactive, onMounted, computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useRouter } from 'vue-router';
-import { getTestQueryDataList, createTestQueryData, updateTestQueryData, deleteTestQueryData, callTestQueryData, getLatestTestQueryDataLog } from '@/api/testQueryData';
+import { UploadFilled } from '@element-plus/icons-vue';
+import { getTestQueryDataList, createTestQueryData, updateTestQueryData, deleteTestQueryData, callTestQueryData, callTestQueryDataWithFiles, getLatestTestQueryDataLog } from '@/api/testQueryData';
 
 const router = useRouter();
 const dialogVisible = ref(false);
@@ -241,6 +275,7 @@ const form = reactive({
   url: '',
   urlDesc: '',
   language: 'java',
+  hasImage: 0,
   paramsStr: '{}'
 });
 
@@ -252,6 +287,9 @@ const callForm = reactive({
   run_mode: 0,  // 0-测试环境, 1-生产环境
   paramsStr: '{}'
 });
+
+const selectedTestData = ref<any>(null);  // 当前选中的测试数据
+const fileList = ref<any[]>([]);  // 文件列表
 
 const callResponseStr = computed(() => {
   return callResponse.value ? JSON.stringify(callResponse.value, null, 2) : '';
@@ -305,12 +343,14 @@ const openDialog = (row?: any) => {
     form.url = row.url;
     form.urlDesc = row.url_desc || '';
     form.language = row.language;
+    form.hasImage = row.has_image || 0;
     form.paramsStr = JSON.stringify(row.params, null, 2);
   } else {
     editRow.value = null;
     form.url = '';
     form.urlDesc = '';
     form.language = 'java';
+    form.hasImage = 0;
     form.paramsStr = '{}';
   }
   dialogVisible.value = true;
@@ -331,7 +371,8 @@ const saveData = async () => {
         url: form.url,
         url_desc: form.urlDesc,
         language: form.language,
-        params
+        params,
+        has_image: form.hasImage
       });
       ElMessage.success('更新成功');
     } else {
@@ -339,7 +380,8 @@ const saveData = async () => {
         url: form.url,
         url_desc: form.urlDesc,
         language: form.language,
-        params
+        params,
+        has_image: form.hasImage
       });
       ElMessage.success('创建成功');
     }
@@ -372,6 +414,8 @@ const openCallDialog = (row: any) => {
   callForm.sysCode = '';  // 清空，需要用户重新输入
   callForm.run_mode = 0;  // 默认测试环境
   callForm.paramsStr = JSON.stringify(row.params, null, 2);
+  selectedTestData.value = row;  // 设置当前选中的测试数据
+  fileList.value = [];  // 清空文件列表
   callResponse.value = null;
   callSuccess.value = false;
   callDialogVisible.value = true;
@@ -392,16 +436,41 @@ const callApi = async () => {
       return;
     }
 
-    const response = await callTestQueryData({
-      test_query_data_id: callForm.id,
-      sys_code: callForm.sysCode,
-      params,
-      run_mode: callForm.run_mode
-    });
-    
-    // 保存响应数据
-    callResponse.value = response.data;
-    callSuccess.value = response.data.success;
+    // 判断是否需要上传文件
+    if (selectedTestData.value?.has_image === 1 && fileList.value.length > 0) {
+      // 使用文件上传接口
+      const formData = new FormData();
+      formData.append('test_query_data_id', callForm.id.toString());
+      formData.append('sys_code', callForm.sysCode);
+      formData.append('run_mode', callForm.run_mode.toString());
+      formData.append('params', JSON.stringify(params));
+      
+      // 添加文件
+      fileList.value.forEach((fileObj, index) => {
+        if (fileObj.raw) {
+          formData.append('files', fileObj.raw);
+        } else if (fileObj instanceof File) {
+          formData.append('files', fileObj);
+        }
+      });
+
+      const response = await callTestQueryDataWithFiles(formData);
+      // 保存响应数据
+      callResponse.value = response.data;
+      callSuccess.value = response.data.success;
+    } else {
+      // 使用普通接口
+      const response = await callTestQueryData({
+        test_query_data_id: callForm.id,
+        sys_code: callForm.sysCode,
+        params,
+        run_mode: callForm.run_mode
+      });
+      
+      // 保存响应数据
+      callResponse.value = response.data;
+      callSuccess.value = response.data.success;
+    }
     
     // 关闭调用对话框
     callDialogVisible.value = false;
@@ -409,10 +478,30 @@ const callApi = async () => {
     // 弹出显示响应结果
     responseDialogVisible.value = true;
     
-    ElMessage.success(response.data.success ? '调用成功' : '调用失败');
+    ElMessage.success(callSuccess.value ? '调用成功' : '调用失败');
   } catch (error: any) {
     ElMessage.error('调用失败: ' + (error.response?.data?.detail || '未知错误'));
   }
+};
+
+// 文件上传前的验证
+const beforeUpload = (file: File) => {
+  const isImage = file.type.startsWith('image/');
+  const isLt2M = file.size / 1024 / 1024 < 2;
+
+  if (!isImage) {
+    ElMessage.error('只能上传图片文件!');
+  }
+  if (!isLt2M) {
+    ElMessage.error('图片大小不能超过 2MB!');
+  }
+  return isImage && isLt2M;
+};
+
+// 移除文件
+const handleRemoveFile = (file: any, fileList: any[]) => {
+  // 处理移除文件的逻辑
+  console.log('移除文件:', file, fileList);
 };
 
 const viewLatestLog = async (row: any) => {

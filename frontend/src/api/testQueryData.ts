@@ -52,6 +52,18 @@ export const callTestQueryData = (data: any) => {
   });
 };
 
+// 带文件调用测试查询数据
+export const callTestQueryDataWithFiles = (formData: FormData) => {
+  return request({
+    url: '/test-query-data/call-with-files',
+    method: 'post',
+    data: formData,
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+};
+
 // 获取测试查询数据日志
 export const getTestQueryDataLogs = (test_query_data_id: number, params: any) => {
   return request({
