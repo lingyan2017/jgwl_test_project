@@ -108,6 +108,24 @@ async def fix_menu_data():
             sys_config_id = sys_config_menu.id
             print(f"创建系统配置菜单: ID {sys_config_id}")
             
+            # 创建试算测试菜单
+            trial_calc_menu = SysMenu(
+                parent_id=test_mgmt_id,
+                menu_name="试算测试",
+                menu_type=2,
+                path="trial-calculator",
+                component="system/TrialCalculator",
+                icon="Document",
+                order_num=3,
+                perms="test:trial-calculator:list",
+                visible=1,
+                status=1
+            )
+            db.add(trial_calc_menu)
+            await db.flush()
+            trial_calc_id = trial_calc_menu.id
+            print(f"创建试算测试菜单: ID {trial_calc_id}")
+            
             # 为超级管理员角色分配新菜单权限
             from app.models.role import SysRoleMenu
             db.add(SysRoleMenu(role_id=1, menu_id=test_mgmt_id))  # 测试管理
