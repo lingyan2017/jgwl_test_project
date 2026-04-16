@@ -119,6 +119,7 @@ class TrialCalculationRequest(BaseModel):
     stage_num: int  # 分期数
     daily_interest_rate: float  # 日利率（万分之）
     daily_fee_rate: float  # 日费率（万分之）
+    float_rate: float = 0  # 浮动费率（万分之）
     tax_rate: float  # 税费率（百分比，如16表示16%）
     coupon_amount: float = 0  # 优惠券金额
     reduce_rate: float = 0  # 减免比例（0-1之间）
@@ -138,7 +139,7 @@ async def trial_calculate(
         request.min_period,
         request.stage_num,
         request.daily_interest_rate,
-        request.daily_fee_rate,
+        request.daily_fee_rate + request.float_rate,  # 日费率 = 基础费率 + 浮动费率
         request.tax_rate,
         request.coupon_amount,
         request.reduce_rate

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="trial-calculator">
     <el-card>
       <template #header>
@@ -28,7 +28,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="日利率（万分之）" required>
+            <el-form-item label="日利率" required>
               <el-input v-model.number="form.daily_interest_rate" type="number" placeholder="请输入日利率" />
             </el-form-item>
           </el-col>
@@ -36,23 +36,31 @@
         
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="日费率（万分之）" required>
+            <el-form-item label="日费率" required>
               <el-input v-model.number="form.daily_fee_rate" type="number" placeholder="请输入日费率" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="税率（百分比）" required>
-              <el-input v-model.number="form.tax_rate" type="number" placeholder="请输入税率" />
+            <el-form-item label="浮动费率">
+              <el-input v-model.number="form.float_rate" type="number" placeholder="请输入浮动费率" />
             </el-form-item>
           </el-col>
         </el-row>
         
         <el-row :gutter="20">
           <el-col :span="12">
+            <el-form-item label="税率（百分比）" required>
+              <el-input v-model.number="form.tax_rate" type="number" placeholder="请输入税率" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
             <el-form-item label="优惠券金额">
               <el-input v-model.number="form.coupon_amount" type="number" placeholder="请输入优惠券金额" />
             </el-form-item>
           </el-col>
+        </el-row>
+        
+        <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="减免比例（0-1之间）">
               <el-input v-model.number="form.reduce_rate" type="number" placeholder="请输入减免比例" />
@@ -116,7 +124,8 @@ const form = reactive({
   stage_num: 2, // 分期数
   daily_interest_rate: 9, // 日利率（万分之）
   daily_fee_rate: 103, // 日费率（万分之）
-  tax_rate: 16, // 税率（百分比）
+  float_rate: 0, // 浮动费率（万分之）
+  tax_rate: 1600, // 税率（百分比）
   coupon_amount: 0, // 优惠券金额
   reduce_rate: 0 // 减免比例（0-1之间）
 });
@@ -153,6 +162,7 @@ const resetForm = () => {
   form.stage_num = 2;
   form.daily_interest_rate = 9;
   form.daily_fee_rate = 103;
+  form.float_rate = 0;
   form.tax_rate = 16;
   form.coupon_amount = 0;
   form.reduce_rate = 0;

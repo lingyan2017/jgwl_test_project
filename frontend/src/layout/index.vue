@@ -134,6 +134,10 @@
                 <el-icon><Setting /></el-icon>
                 <template #title>系统配置</template>
               </el-menu-item>
+              <el-menu-item index="/test/trial-calculator">
+                <el-icon><Document /></el-icon>
+                <template #title>试算测试</template>
+              </el-menu-item>
             </el-sub-menu>
           </template>
           <el-menu-item v-else>

@@ -81,6 +81,12 @@ const staticRoutes: RouteRecordRaw[] = [
         component: () => import('@/views/system/SysConfigManage.vue'), 
         meta: { title: '系统配置', requiresAuth: true } 
       },
+      { 
+        path: 'test/trial-calculator', 
+        name: 'TrialCalculator', 
+        component: () => import('@/views/system/TrialCalculator.vue'), 
+        meta: { title: '试算测试', requiresAuth: true } 
+      },
     ], // 包含基本的子路由作为后备
   },
   { path: '/:pathMatch(.*)*', redirect: '/' },
