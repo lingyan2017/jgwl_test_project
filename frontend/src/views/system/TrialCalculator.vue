@@ -84,12 +84,17 @@
       </template>
       
       <div class="result-section">
-        <h3>总体信息</h3>
-        <el-descriptions :column="2" border>
+        <h3 style="margin-top: 20px;">总体信息</h3>
+        <el-descriptions :column="3" border>
           <el-descriptions-item label="放款金额">{{ result.amount }}</el-descriptions-item>
           <el-descriptions-item label="最小借款周期">{{ result.min_period }}天</el-descriptions-item>
           <el-descriptions-item label="分期数">{{ result.stage_num }}期</el-descriptions-item>
-          <el-descriptions-item label="总费用">{{ result.total_fees }}</el-descriptions-item>
+          <el-descriptions-item label="总应还">{{ result.total_fees }}</el-descriptions-item>
+          <el-descriptions-item label="总利息">{{ result.total_interest }}</el-descriptions-item>
+          <el-descriptions-item label="总服务费">{{ result.total_service_fee }}</el-descriptions-item>
+          <el-descriptions-item label="总GST">{{ result.total_gst }}</el-descriptions-item>
+          <el-descriptions-item label="总减免">{{ result.total_reduced }}</el-descriptions-item>
+          <el-descriptions-item label="实际总还款">{{ result.total_actual_repay }}</el-descriptions-item>
         </el-descriptions>
         
         <h3 style="margin-top: 20px;">各期明细</h3>
@@ -99,12 +104,13 @@
           <el-table-column prop="stage_principal" label="本金" width="100" />
           <el-table-column prop="stage_interest" label="利息" width="100" />
           <el-table-column prop="stage_service_fee" label="服务费" width="100" />
-          <el-table-column prop="stage_tax" label="税费" width="100" />
+          <el-table-column prop="stage_tax" label="GST" width="100" />
           <el-table-column prop="service_fee_reduced" label="减免服务费" width="120" />
           <el-table-column prop="interest_reduced" label="减免利息" width="120" />
-          <el-table-column prop="tax_reduced" label="减免税费" width="120" />
+          <el-table-column prop="tax_reduced" label="减免GST" width="120" />
           <el-table-column prop="actual_payment" label="实际应付款" width="120" />
           <el-table-column prop="per_period_days" label="期数天数" width="100" />
+          <el-table-column prop="repay_date" label="还款日期" width="120" />
         </el-table>
       </div>
     </el-card>
@@ -121,11 +127,11 @@ const loading = ref(false);
 const form = reactive({
   amount: 200, // 本金
   min_period: 14, // 最小借款周期（天）
-  stage_num: 2, // 分期数
+  stage_num: 1, // 分期数（默认1期）
   daily_interest_rate: 9, // 日利率（万分之）
   daily_fee_rate: 103, // 日费率（万分之）
-  float_rate: 0, // 浮动费率（万分之）
-  tax_rate: 1600, // 税率（百分比）
+  float_rate: 94, // 浮动费率（万分之）
+  tax_rate: 1600, // GST税率（万分之，1600=16%）
   coupon_amount: 0, // 优惠券金额
   reduce_rate: 0 // 减免比例（0-1之间）
 });
@@ -159,11 +165,11 @@ const calculate = async () => {
 const resetForm = () => {
   form.amount = 200;
   form.min_period = 14;
-  form.stage_num = 2;
+  form.stage_num = 1;
   form.daily_interest_rate = 9;
   form.daily_fee_rate = 103;
-  form.float_rate = 0;
-  form.tax_rate = 16;
+  form.float_rate = 94;
+  form.tax_rate = 1600;
   form.coupon_amount = 0;
   form.reduce_rate = 0;
   result.value = null;

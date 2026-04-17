@@ -1,112 +1,17 @@
-import math
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import date
 
 from app.db.session import get_db
 from app.models.user import SysUser
 from app.core.deps import get_current_user
 from app.schemas.common import success
+from app.api.v1.trial_calc import (
+    Product, TrialParam, StageConfig, trial_calc, 
+    get_summary, STAGE_PERCENTAGE, PERIOD_JUST_END
+)
 
 router = APIRouter()
-
-
-def calculate_all_stages(
-        amount,  # 本金
-        min_period,  # 最小借款周期（天）
-        stage_num,  # 分期数
-        daily_interest_rate,  # 日利率（万分之）
-        daily_fee_rate,  # 日费率（万分之）
-        tax_rate,  # 税费率（百分比，如16表示16%）
-        coupon_amount,  # 优惠券金额
-        reduce_rate  # 减免比例（0-1之间）
-):
-    """
-    计算分期贷款所有期数的费用，所有结果向上取整
-    """
-    # 计算每期天数（向上取整）
-    per_period_days = math.ceil(min_period / stage_num)
-
-    # 计算每期本金（向上取整）
-    per_stage_principal = math.ceil(amount / stage_num)
-
-    # 初始化总费用和结果列表
-    total_fees = 0
-    stages_result = []
-
-    # 计算所有期数的费用
-    for stage_index in range(stage_num):
-        # 计算当期利息（向上取整）
-        interestRate = min_period * 1 * daily_interest_rate / 10000
-        # stage_interest = math.ceil(per_stage_principal * (daily_interest_rate / 10000) * min_period)
-
-        # 计算当期服务费（向上取整）
-        serviceRate = min_period * 1 * daily_fee_rate / 10000
-        # stage_service_fee = math.ceil(per_stage_principal * (daily_fee_rate / 10000) * min_period)
-
-        # # 计算当期税费（向上取整）
-        gstRate = (interestRate + serviceRate) * tax_rate / 10000
-        # stage_tax = math.ceil((stage_interest + stage_service_fee) * (tax_rate / 10000))
-
-        # 计算当期总应还（向上取整）
-        stage_interest = math.ceil(amount * interestRate)
-        stage_service_fee = math.ceil(amount * serviceRate)
-        stage_total = math.ceil(per_stage_principal * (1.0 + interestRate + serviceRate + gstRate))
-
-        stage_tax = stage_total - stage_interest - stage_service_fee
-
-        # 计算优惠券减免（只在第一期处理）
-        service_fee_reduced = 0
-        interest_reduced = 0
-        tax_reduced = 0
-
-        if stage_index == 0 and reduce_rate > 0 and reduce_rate <= 1:
-            # 计算总费用（利息+服务费+税费）
-            current_fees = stage_interest + stage_service_fee + stage_tax
-            # 计算减免金额（向上取整）
-            discount_amount = math.ceil(current_fees * reduce_rate)
-
-            # 按照顺序减免：先减免服务费，再减免利息，最后减免税费
-            service_fee_reduced = min(stage_service_fee, discount_amount)
-            remaining_discount = discount_amount - service_fee_reduced
-
-            if remaining_discount > 0:
-                interest_reduced = min(stage_interest, remaining_discount)
-                remaining_discount -= interest_reduced
-
-            if remaining_discount > 0:
-                tax_reduced = min(stage_tax, remaining_discount)
-
-        # 构建当期结果
-        stage_result = {
-            "stage_index": stage_index + 1,
-            "stage_total": stage_total,
-            "stage_principal": per_stage_principal,
-            "stage_interest": stage_interest,
-            "stage_service_fee": stage_service_fee,
-            "stage_tax": stage_tax,
-            "service_fee_reduced": service_fee_reduced,
-            "interest_reduced": interest_reduced,
-            "tax_reduced": tax_reduced,
-            "actual_payment": max(0, stage_total - service_fee_reduced - interest_reduced - tax_reduced),
-            "per_period_days": per_period_days
-        }
-
-        # 添加到结果列表
-        stages_result.append(stage_result)
-
-        # 累计总费用
-        total_fees += stage_total
-
-    # 构建总结果
-    total_result = {
-        "amount": amount,
-        "min_period": min_period,
-        "stage_num": stage_num,
-        "total_fees": total_fees,
-        "stages": stages_result
-    }
-
-    return total_result
 
 
 from pydantic import BaseModel
@@ -114,14 +19,14 @@ from typing import Optional
 
 
 class TrialCalculationRequest(BaseModel):
-    amount: float  # 本金
+    amount: int  # 本金
     min_period: int  # 最小借款周期（天）
-    stage_num: int  # 分期数
-    daily_interest_rate: float  # 日利率（万分之）
-    daily_fee_rate: float  # 日费率（万分之）
-    float_rate: float = 0  # 浮动费率（万分之）
-    tax_rate: float  # 税费率（百分比，如16表示16%）
-    coupon_amount: float = 0  # 优惠券金额
+    stage_num: int = 1  # 分期数（默认1期）
+    daily_interest_rate: int  # 日利率（万分之）
+    daily_fee_rate: int  # 日费率（万分之）
+    float_rate: int = 0  # 浮动费率（万分之）
+    tax_rate: int  # GST税率（万分之，如1600表示16%）
+    coupon_amount: int = 0  # 优惠券金额
     reduce_rate: float = 0  # 减免比例（0-1之间）
 
 
@@ -132,63 +37,133 @@ async def trial_calculate(
     current_user: SysUser = Depends(get_current_user),
 ):
     """
-    试算接口 - 计算分期贷款所有期数的费用
+    试算接口 - 使用 trial_calc.py 中的 TrialParam 方法
     """
-    result = calculate_all_stages(
-        request.amount,
-        request.min_period,
-        request.stage_num,
-        request.daily_interest_rate,
-        request.daily_fee_rate + request.float_rate,  # 日费率 = 基础费率 + 浮动费率
-        request.tax_rate,
-        request.coupon_amount,
-        request.reduce_rate
+    # 构建产品配置
+    product = Product(
+        min_period=request.min_period,
+        period=1,  # 日贷
+        day_interest_rate=request.daily_interest_rate,
+        day_fee_rate=request.daily_fee_rate + request.float_rate,  # 基础费率 + 浮动费率
+        gst_fee_rate=request.tax_rate,
+        stage_num=request.stage_num,
+        period_cal_type=PERIOD_JUST_END,
     )
+    
+    # 构建试算参数
+    trial_param = TrialParam(
+        loan=request.amount,
+        coupon_amount=request.coupon_amount,
+        reduce_rate=request.reduce_rate,
+        repay_order="s;t;i;p",  # 默认抵扣顺序：服务费→GST→利息→本金
+        loan_date=date.today(),
+    )
+    
+    # 如果是多期，构建分期配置（等比例分期）
+    stage_configs = None
+    if request.stage_num > 1:
+        # 计算每期天数和比例
+        sub_period = request.min_period // request.stage_num
+        sub_percentage = 10000 // request.stage_num  # 等比例
+        
+        stage_configs = [
+            StageConfig(sub_period=sub_period, sub_percentage=sub_percentage)
+            for _ in range(request.stage_num)
+        ]
+    
+    # 执行试算
+    details = trial_calc(product, trial_param, stage_configs, STAGE_PERCENTAGE)
+    
+    # 获取汇总信息
+    summary = get_summary(details)
+    
+    # 转换为前端需要的格式
+    result = {
+        "amount": summary.total_loan,
+        "min_period": request.min_period,
+        "stage_num": summary.total_stages,
+        "total_fees": summary.total_amount,
+        "total_interest": summary.total_interest,
+        "total_service_fee": summary.total_service_fee,
+        "total_gst": summary.total_gst,
+        "total_reduced": summary.total_reduced,
+        "total_actual_repay": summary.total_actual_repay,
+        "stages": [
+            {
+                "stage_index": d.id,
+                "stage_total": d.total,
+                "stage_principal": d.amount,
+                "stage_interest": d.interest,
+                "stage_service_fee": d.service_fee,
+                "stage_tax": d.gst,
+                "service_fee_reduced": d.service_fee_reduced,
+                "interest_reduced": d.interest_reduced,
+                "tax_reduced": d.gst_reduced,
+                "actual_payment": d.actual_repay,
+                "per_period_days": d.stage_period,
+                "repay_date": str(d.repay_date),
+                "repay_day_offset": d.repay_day_offset,
+            }
+            for d in details
+        ]
+    }
     
     return success(result)
 
 
 # 示例调用
 if __name__ == "__main__":
+    from datetime import date
+    
     # 示例参数
-    amount = 200  # 本金
-    min_period = 14  # 最小借款周期14天
-    stage_num = 2  # 分2期
-    daily_interest_rate = 9  #
-    float_rate = 94  # 浮动费率
-    daily_fee_rate = 103  # 日费率
-    tax_rate = 1600  # 税费率
-    coupon_amount = 0  # 优惠券金额500
-    reduce_rate = 0  # 减免比例50%
-
-    # 计算并打印结果
-    result = calculate_all_stages(
-        amount,
-        min_period,
-        stage_num,
-        daily_interest_rate,
-        daily_fee_rate + float_rate,
-        tax_rate,
-        coupon_amount,
-        reduce_rate
+    BASE_DATE = date(2026, 4, 16)
+    
+    # 产品配置
+    p = Product(
+        min_period=14,
+        period=1,
+        day_interest_rate=9,
+        day_fee_rate=197,  # 103 + 94
+        gst_fee_rate=1600,
+        stage_num=1,
+        period_cal_type=PERIOD_JUST_END,
     )
-
-    print("分期费用计算结果（向上取整）：")
-    print(f"放款金额: {result['amount']}")
-    print(f"最小借款周期: {result['min_period']}天")
-    print(f"分期数: {result['stage_num']}期")
-    print(f"总费用: {result['total_fees']}")
+    
+    # 试算参数
+    t = TrialParam(
+        loan=200,
+        coupon_amount=0,
+        reduce_rate=0,
+        repay_order="s;t;i;p",
+        loan_date=BASE_DATE,
+    )
+    
+    # 执行试算
+    details = trial_calc(p, t)
+    summary = get_summary(details)
+    
+    print("\n试算结果：")
+    print(f"放款金额: {summary.total_loan}")
+    print(f"最小借款周期: {p.min_period}天")
+    print(f"分期数: {summary.total_stages}期")
+    print(f"总应还: {summary.total_amount}")
+    print(f"总利息: {summary.total_interest}")
+    print(f"总服务费: {summary.total_service_fee}")
+    print(f"总GST: {summary.total_gst}")
+    print(f"总减免: {summary.total_reduced}")
+    print(f"实际总还款: {summary.total_actual_repay}")
     print("\n各期详细信息：")
-
-    for stage in result['stages']:
-        print(f"\n第{stage['stage_index']}期：")
-        print(f"  总应还: {stage['stage_total']}")
-        print(f"  本金: {stage['stage_principal']}")
-        print(f"  利息: {stage['stage_interest']}")
-        print(f"  服务费: {stage['stage_service_fee']}")
-        print(f"  税费: {stage['stage_tax']}")
-        print(f"  减免服务费: {stage['service_fee_reduced']}")
-        print(f"  减免利息: {stage['interest_reduced']}")
-        print(f"  减免税费: {stage['tax_reduced']}")
-        print(f"  实际应付款: {stage['actual_payment']}")
-        print(f"  期数天数: {stage['per_period_days']}天")
+    
+    for d in details:
+        print(f"\n第{d.id}期：")
+        print(f"  账期天数: {d.stage_period}")
+        print(f"  还款日期: {d.repay_date}")
+        print(f"  总应还: {d.total}")
+        print(f"  本金: {d.amount}")
+        print(f"  利息: {d.interest}")
+        print(f"  服务费: {d.service_fee}")
+        print(f"  GST: {d.gst}")
+        print(f"  减免服务费: {d.service_fee_reduced}")
+        print(f"  减免利息: {d.interest_reduced}")
+        print(f"  减免GST: {d.gst_reduced}")
+        print(f"  实际应付款: {d.actual_repay}")
