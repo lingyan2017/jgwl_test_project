@@ -52,12 +52,13 @@
         </el-table-column>
         <el-table-column prop="create_time" label="创建时间" width="180" />
         <el-table-column prop="create_user" label="创建人" width="120" />
-        <el-table-column label="操作" width="280" fixed="right">
+        <el-table-column label="操作" width="350" fixed="right">
           <template #default="{row}">
             <el-button size="small" type="primary" text @click="openDialog(row)">编辑</el-button>
             <el-button size="small" type="danger" text @click="handleDelete(row.id)">删除</el-button>
             <el-button size="small" type="success" text @click="openCallDialog(row)">调用</el-button>
             <el-button size="small" type="info" text @click="viewLatestLog(row)">最新日志</el-button>
+            <el-button size="small" type="warning" text @click="viewAllLogs(row)">所有日志</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -241,6 +242,84 @@
         </span>
       </template>
     </el-dialog>
+    
+    <!-- 所有日志弹窗 -->
+    <el-dialog v-model="allLogsDialogVisible" title="调用日志列表" width="1200px">
+      <el-table :data="allLogs" border style="width: 100%">
+        <el-table-column prop="id" label="日志ID" width="80" />
+        <el-table-column prop="sys_code" label="系统编码" width="120" />
+        <el-table-column prop="status" label="状态" width="100">
+          <template #default="{row}">
+            <el-tag :type="row.status === 1 ? 'success' : 'danger'">
+              {{ row.status === 1 ? '成功' : '失败' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="create_time" label="调用时间" width="180" />
+        <el-table-column prop="create_user" label="调用人" width="120" />
+        <el-table-column label="操作" width="100">
+          <template #default="{row}">
+            <el-button size="small" type="primary" text @click="viewLogDetail(row)">详情</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      
+      <el-pagination
+        v-model:current-page="logQuery.page"
+        v-model:page-size="logQuery.page_size"
+        :total="allLogsTotal"
+        :page-sizes="[10, 20, 50]"
+        layout="total, sizes, prev, pager, next"
+        style="margin-top: 16px; justify-content: flex-end"
+        @size-change="handleLogSizeChange"
+        @current-change="handleLogCurrentChange"
+      />
+      
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button type="primary" @click="allLogsDialogVisible = false">关闭</el-button>
+        </span>
+      </template>
+    </el-dialog>
+    
+    <!-- 日志详情弹窗 -->
+    <el-dialog v-model="logDetailDialogVisible" title="日志详情" width="900px">
+      <div v-if="currentLogDetail">
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="日志ID">{{ currentLogDetail.id }}</el-descriptions-item>
+          <el-descriptions-item label="系统编码">{{ currentLogDetail.sys_code }}</el-descriptions-item>
+          <el-descriptions-item label="状态">
+            <el-tag :type="currentLogDetail.status === 1 ? 'success' : 'danger'">
+              {{ currentLogDetail.status === 1 ? '成功' : '失败' }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="调用时间">{{ currentLogDetail.create_time }}</el-descriptions-item>
+          <el-descriptions-item label="调用人">{{ currentLogDetail.create_user }}</el-descriptions-item>
+          <el-descriptions-item label="错误信息" v-if="currentLogDetail.error_msg">
+            {{ currentLogDetail.error_msg }}
+          </el-descriptions-item>
+        </el-descriptions>
+        <el-divider content-position="left">请求参数</el-divider>
+        <el-input
+          v-model="currentLogRequestStr"
+          type="textarea"
+          :rows="8"
+          readonly
+        />
+        <el-divider content-position="left">响应数据</el-divider>
+        <el-input
+          v-model="currentLogResponseStr"
+          type="textarea"
+          :rows="8"
+          readonly
+        />
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button type="primary" @click="logDetailDialogVisible = false">关闭</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -249,19 +328,29 @@ import { ref, reactive, onMounted, computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useRouter } from 'vue-router';
 import { UploadFilled } from '@element-plus/icons-vue';
-import { getTestQueryDataList, createTestQueryData, updateTestQueryData, deleteTestQueryData, callTestQueryData, callTestQueryDataWithFiles, getLatestTestQueryDataLog } from '@/api/testQueryData';
+import { getTestQueryDataList, createTestQueryData, updateTestQueryData, deleteTestQueryData, callTestQueryData, callTestQueryDataWithFiles, getLatestTestQueryDataLog, getTestQueryDataLogs } from '@/api/testQueryData';
 
 const router = useRouter();
 const dialogVisible = ref(false);
 const callDialogVisible = ref(false);
 const responseDialogVisible = ref(false);
 const logDialogVisible = ref(false);
+const allLogsDialogVisible = ref(false);  // 所有日志弹窗
 const editRow = ref<any>(null);
 const tableData = ref<any[]>([]);
 const total = ref(0);
 const callResponse = ref<any>(null);
 const callSuccess = ref(false);
 const latestLog = ref<any>(null);
+const allLogs = ref<any[]>([]);  // 所有日志列表
+const allLogsTotal = ref(0);  // 日志总数
+const currentLogTestId = ref<number>(0);  // 当前查看日志的测试数据ID
+const logQuery = reactive({  // 日志查询参数
+  page: 1,
+  page_size: 10
+});
+const logDetailDialogVisible = ref(false);  // 日志详情弹窗
+const currentLogDetail = ref<any>(null);  // 当前查看的日志详情
 
 const query = reactive({
   page: 1,
@@ -507,12 +596,61 @@ const handleRemoveFile = (file: any, fileList: any[]) => {
 const viewLatestLog = async (row: any) => {
   try {
     const response = await getLatestTestQueryDataLog(row.id);
-    latestLog.value = response.data.log;
+    latestLog.value = response.data;  // 直接使用 response.data
     logDialogVisible.value = true;
   } catch (error) {
     ElMessage.error('获取日志失败');
   }
 };
+
+// 查看所有日志
+const viewAllLogs = async (row: any) => {
+  currentLogTestId.value = row.id;
+  logQuery.page = 1;
+  await loadAllLogs();
+  allLogsDialogVisible.value = true;
+};
+
+// 加载所有日志
+const loadAllLogs = async () => {
+  try {
+    const response = await getTestQueryDataLogs(currentLogTestId.value, logQuery);
+    allLogs.value = response.data.items;
+    allLogsTotal.value = response.data.total;
+  } catch (error) {
+    ElMessage.error('获取日志列表失败');
+  }
+};
+
+// 日志分页大小变化
+const handleLogSizeChange = (size: number) => {
+  logQuery.page_size = size;
+  logQuery.page = 1;
+  loadAllLogs();
+};
+
+// 日志页码变化
+const handleLogCurrentChange = (current: number) => {
+  logQuery.page = current;
+  loadAllLogs();
+};
+
+// 查看日志详情
+const viewLogDetail = (log: any) => {
+  currentLogDetail.value = log;
+  logDetailDialogVisible.value = true;
+};
+
+// 计算属性：当前日志详情的请求参数和响应数据
+const currentLogRequestStr = computed(() => {
+  if (!currentLogDetail.value || !currentLogDetail.value.request_params) return '';
+  return JSON.stringify(currentLogDetail.value.request_params, null, 2);
+});
+
+const currentLogResponseStr = computed(() => {
+  if (!currentLogDetail.value || !currentLogDetail.value.response_data) return '';
+  return JSON.stringify(currentLogDetail.value.response_data, null, 2);
+});
 
 onMounted(() => {
   loadData();

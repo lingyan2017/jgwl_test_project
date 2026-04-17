@@ -591,3 +591,44 @@ async def get_test_query_data_logs(
         result.append(item_dict)
     
     return success({"total": total, "items": result})
+
+
+@router.get("/latest-log/{test_query_data_id}")
+async def get_latest_test_query_data_log(
+        test_query_data_id: int,
+        db: AsyncSession = Depends(get_db),
+        current_user: SysUser = Depends(get_current_user),
+):
+    """
+    获取指定测试数据的最新一条日志（当前用户）
+    """
+    # 查询当前用户对指定测试数据的最新日志
+    q = (
+        select(TestQueryDataLog)
+        .where(
+            TestQueryDataLog.test_query_data_id == test_query_data_id,
+            TestQueryDataLog.create_user == current_user.username
+        )
+        .order_by(TestQueryDataLog.create_time.desc())
+        .limit(1)
+    )
+
+    log = (await db.execute(q)).scalar_one_or_none()
+
+    if not log:
+        return success(None)
+
+    # 转换字段为字典并返回
+    result = {
+        "id": log.id,
+        "test_query_data_id": log.test_query_data_id,
+        "sys_code": log.sys_code,
+        "request_params": json.loads(log.request_params),
+        "response_data": json.loads(log.response_data),
+        "status": log.status,
+        "error_msg": log.error_msg,
+        "create_time": log.create_time,
+        "create_user": log.create_user
+    }
+
+    return success(result)
