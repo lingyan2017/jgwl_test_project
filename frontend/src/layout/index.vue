@@ -138,6 +138,14 @@
                 <el-icon><Document /></el-icon>
                 <template #title>试算测试</template>
               </el-menu-item>
+              <el-menu-item index="/test/payment-test">
+                <el-icon><Money /></el-icon>
+                <template #title>支付测试</template>
+              </el-menu-item>
+              <el-menu-item index="/test/system-config">
+                <el-icon><Setting /></el-icon>
+                <template #title>系统配置项</template>
+              </el-menu-item>
             </el-sub-menu>
           </template>
           <el-menu-item v-else>
@@ -203,7 +211,7 @@ import { getUserMenus } from '@/api/menu'
 import type { MenuInfo } from '@/types'
 
 // 导入Element Plus图标
-import { HomeFilled, Setting, OfficeBuilding, User, Folder, Postcard, UserFilled, Menu as MenuIcon, Lock, Document, Expand, Fold, ArrowDown, Loading } from '@element-plus/icons-vue'
+import { HomeFilled, Setting, OfficeBuilding, User, Folder, Postcard, UserFilled, Menu as MenuIcon, Lock, Document, Expand, Fold, ArrowDown, Loading, Money } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -267,6 +275,7 @@ function getIconComponent(iconName: string) {
     'Menu': MenuIcon,
     'Lock': Lock,
     'Document': Document,
+    'Money': Money,
     'Expand': Expand,
     'Fold': Fold,
     'ArrowDown': ArrowDown,
