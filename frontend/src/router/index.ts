@@ -93,6 +93,12 @@ const staticRoutes: RouteRecordRaw[] = [
         component: () => import('@/views/system/PaymentTest.vue'),
         meta: { title: '支付测试', requiresAuth: true }
       },
+      {
+        path: 'test/system-config',
+        name: 'SystemConfig',
+        component: () => import('@/views/system/SystemConfigManage.vue'),
+        meta: { title: '系统配置项', requiresAuth: true }
+      },
     ], // 包含基本的子路由作为后备
   },
   { path: '/:pathMatch(.*)*', redirect: '/' },
