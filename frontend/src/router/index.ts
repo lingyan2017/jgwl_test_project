@@ -226,15 +226,12 @@ router.beforeEach(async (to) => {
 
   // 访问需要权限的页面且路由尚未加载时，尝试加载动态路由
   if (auth.token) {
-    // 只对动态路由进行处理，避免无限循环
-    if (to.matched.length === 0 && !to.path.includes('/system') && !to.path.includes('/test')) {
+    if (!routesAdded) {
       try {
         await addDynamicRoutes()
-        // 重新导航到目标路由
         return to.fullPath
       } catch (error) {
         console.error('Failed to add dynamic routes:', error)
-        // 即使动态路由加载失败，也允许访问默认页面
         if (to.path !== '/dashboard') {
           return '/dashboard'
         }
