@@ -150,31 +150,24 @@ export function addDynamicRoutes() {
     getUserMenus().then(res => {
       if (res.code === 0) {
         const menus = res.data || []
-        
-        // 递归添加菜单对应的路由
-        function addRoutes(menus: MenuInfo[], parentPath = ''): RouteRecordRaw[] {
+
+        // 将菜单树扁平化为路由列表，直接挂载到 Layout 下
+        function flattenMenuRoutes(menus: MenuInfo[], parentPath = ''): RouteRecordRaw[] {
           const routes: RouteRecordRaw[] = []
-          
+
           menus.forEach(menu => {
-            if (menu.menu_type === 1) { // 目录
-              const fullPath = parentPath ? `${parentPath}/${menu.path}` : `/${menu.path}`
-              const route: RouteRecordRaw = {
-                path: menu.path || '',
-                name: `dir-${menu.menu_name.replace(/\s+/g, '')}`,
-                component: () => import('@/layout/BlankLayout.vue'), // 空布局用于目录
-                meta: {
-                  title: menu.menu_name,
-                  icon: menu.icon,
-                  requiresAuth: true,
-                  order_num: menu.order_num,
-                },
-                children: addRoutes(menu.children || [], fullPath)
+            const currentPath = parentPath ? `${parentPath}/${menu.path}` : menu.path || ''
+
+            if (menu.menu_type === 1) {
+              // 目录：不创建路由，只递归子菜单
+              if (menu.children && menu.children.length > 0) {
+                routes.push(...flattenMenuRoutes(menu.children, currentPath))
               }
-              routes.push(route)
-            } else if (menu.menu_type === 2) { // 菜单
-              const route: RouteRecordRaw = {
-                path: menu.path || '',
-                name: menu.menu_name.replace(/\s+/g, ''),
+            } else if (menu.menu_type === 2) {
+              // 菜单：创建扁平路由直接挂载到 Layout
+              routes.push({
+                path: currentPath,
+                name: `dyn-${currentPath.replace(/\//g, '-')}`,
                 component: loadView(menu.component || ''),
                 meta: {
                   title: menu.menu_name,
@@ -182,20 +175,17 @@ export function addDynamicRoutes() {
                   requiresAuth: true,
                   order_num: menu.order_num,
                 },
-              }
-              routes.push(route)
+              })
             }
-            // 按钮类型(menu_type === 3)不生成路由
           })
-          
+
           return routes
         }
-        
-        const dynamicRoutes = addRoutes(menus)
-        
-        // 添加动态子路由到Layout
+
+        const dynamicRoutes = flattenMenuRoutes(menus)
+
+        // 添加扁平路由到 Layout
         dynamicRoutes.forEach(route => {
-          // 检查路由是否已存在，避免重复添加
           if (!router.hasRoute(route.name as string)) {
             router.addRoute('Layout', route);
           }
